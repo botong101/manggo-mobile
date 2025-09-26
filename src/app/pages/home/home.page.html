@@ -1,0 +1,242 @@
+<ion-header>
+  <ion-toolbar class="toolbar">
+    <ion-buttons slot="start">
+      <ion-menu-button class="menu-button"></ion-menu-button>
+    </ion-buttons>
+    <div class="toolbar-content">
+      <img src="assets/logo-name.png" alt="Mangosense Logo" class="logo-name" />
+    </div>
+    <ion-buttons slot="end">
+      <!--<ion-button class="notification-button">
+        <ion-icon name="notifications-outline" class="notification-icon"></ion-icon>
+        <div class="notification-badge"></div>
+      </ion-button>-->
+      <ion-avatar class="profile-avatar" (click)="openProfile()">
+        <img *ngIf="userAvatar" [src]="userAvatar" alt="Profile" />
+        <ion-icon *ngIf="!userAvatar" name="person-circle-outline" class="profile-icon"></ion-icon>
+      </ion-avatar>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="home-content">
+  <div class="content-wrapper">
+    <!-- Welcome Section with Enhanced Design -->
+    <div class="greeting-section">
+      <div class="greeting-background"></div>
+      <div class="greeting-content">
+        <div class="greeting-text">
+           <!--<div class="time-indicator">
+            <ion-icon [name]="getTimeIcon()" class="time-icon"></ion-icon>
+            <span class="time-text">{{ getCurrentTime() }}</span>
+          </div> -->
+          <h1 class="welcome-title">{{ currentTime }}!</h1>
+          <h2 class="user-name">{{ userName }}</h2>
+          <p class="subtitle">
+            <ion-icon name="leaf-outline" class="subtitle-icon"></ion-icon>
+            Welcome to Mangosense - Your Smart Mango Disease Detector
+          </p>
+          
+        </div>
+        
+        <div class="greeting-visual">
+          <div class="logo-container">
+            <img src="assets/logo2.png" alt="Mangosense Logo" class="mangosense-logo" />
+            <div class="logo-glow"></div>
+          </div>
+          <div class="floating-elements">
+            <div class="floating-element element-1">
+              <ion-icon name="leaf-outline"></ion-icon>
+            </div>
+            <div class="floating-element element-2">
+              <ion-icon name="analytics-outline"></ion-icon>
+            </div>
+            <div class="floating-element element-3">
+              <ion-icon name="shield-checkmark-outline"></ion-icon>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Enhanced Action Buttons Section -->
+    <div class="action-section">
+      <div class="section-header">
+        <h3 class="section-title">Analyze Your Mango</h3>
+        <p class="section-subtitle">Get instant disease detection results with AI-powered analysis</p>
+      </div>
+      
+      <!-- Detection Type Selection (hide when selectedDetectionType is set) -->
+      <div class="card-row" *ngIf="!selectedDetectionType">
+        <ion-card class="detection-card" (click)="selectDetectionType('leaf')">
+          <ion-card-content>
+        <div class="card-icon-wrapper">
+          <ion-icon name="leaf-outline" class="card-icon"></ion-icon>
+        </div>
+        <h3>Leaf</h3>
+        <p>Detect diseases from mango leaves</p>
+        <div class="card-glow"></div>
+          </ion-card-content>
+        </ion-card>
+
+        <ion-card class="detection-card fruit-card" (click)="selectDetectionType('fruit')">
+          <ion-card-content>
+        <div class="card-icon-wrapper">
+          <ion-icon name="nutrition-outline" class="card-icon"></ion-icon>
+        </div>
+        <h3>Fruit</h3>
+        <p>Detect diseases from mango fruits</p>
+        <div class="card-glow"></div>
+          </ion-card-content>
+        </ion-card>
+      </div>
+
+      <!-- Enhanced Selection Badge Section -->
+      <div class="selection-badge" *ngIf="selectedDetectionType">
+        <div class="selection-status">
+          <div class="status-card" [class.fruit-status]="selectedDetectionType === 'fruit'">
+            <div class="status-icon">
+              <ion-icon [name]="selectedDetectionType === 'leaf' ? 'leaf-outline' : 'nutrition-outline'"></ion-icon>
+            </div>
+            <div class="status-content">
+              <div class="status-title">
+                {{ selectedDetectionType === 'leaf' ? 'Leaf Analysis' : 'Fruit Analysis' }}
+              </div>
+              <div class="status-subtitle">
+                {{ selectedDetectionType === 'leaf' ? 'Leaf Disease Detection Model' : 'Fruit Disease Detection Model' }}
+              </div>
+            </div>
+            <div class="status-indicator">
+              <ion-icon name="checkmark-circle" class="success-icon"></ion-icon>
+            </div>
+          </div>
+          
+          <ion-button fill="clear" class="change-selection-btn" 
+                      [class.fruit-change-btn]="selectedDetectionType === 'fruit'"
+                      (click)="clearSelection()">
+            <ion-icon name="swap-horizontal-outline" slot="start"></ion-icon>
+            Change
+          </ion-button>
+        </div>
+      </div>
+
+      <!-- Action Buttons (only show when detection type is selected) -->
+      <div class="action-buttons" *ngIf="selectedDetectionType">
+        <ion-button expand="block" class="primary-button photo-button" (click)="importPhoto()">
+          <div class="button-icon-wrapper">
+        <ion-icon name="images-outline" class="button-icon"></ion-icon>
+          </div>
+          <div class="button-content">
+        <span class="button-title">Import Photo</span>
+        <span class="button-subtitle">Select from gallery</span>
+          </div>
+          <ion-icon name="chevron-forward-outline" class="button-arrow"></ion-icon>
+        </ion-button>
+
+        <ion-button expand="block" class="primary-button camera-button" (click)="useCamera()">
+          <div class="button-icon-wrapper">
+        <ion-icon name="camera-outline" class="button-icon"></ion-icon>
+          </div>
+          <div class="button-content">
+        <span class="button-title">Take Photo</span>
+        <span class="button-subtitle">Use camera</span>
+          </div>
+          <ion-icon name="chevron-forward-outline" class="button-arrow"></ion-icon>
+        </ion-button>
+      </div>
+     
+      <!-- Quick Tip -->
+      <div class="quick-tip">
+        <ion-icon name="bulb-outline" class="tip-icon"></ion-icon>
+        <span>Pro Tip: Take photos in good lighting for better results</span>
+      </div>
+    </div>
+
+    <!-- Enhanced Quick Actions Section -->
+    <!--<div class="quick-actions-section">
+      <div class="section-header">
+        <h3 class="section-title">Quick Actions</h3>
+        <p class="section-subtitle">Access your data and insights</p>
+      </div>
+      
+      <div class="icon-grid">
+        <div class="icon-card history-card" (click)="navigateToHistory()">
+          <div class="card-background"></div>
+          <div class="card-content">
+            <div class="icon-wrapper">
+              <ion-icon name="time-outline"></ion-icon>
+            </div>
+            <span class="card-title">History</span>
+            <span class="card-subtitle">View past analyses</span>
+            <div class="card-badge" *ngIf="recentAnalysesCount > 0">{{ recentAnalysesCount }}</div>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+        
+        <div class="icon-card reports-card" (click)="navigateToReports()">
+          <div class="card-background"></div>
+          <div class="card-content">
+            <div class="icon-wrapper">
+              <ion-icon name="bar-chart-outline"></ion-icon>
+            </div>
+            <span class="card-title">Reports</span>
+            <span class="card-subtitle">Analytics & insights</span>
+            <div class="card-badge new-badge">New</div>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+        
+        <div class="icon-card map-card" (click)="navigateToMap()">
+          <div class="card-background"></div>
+          <div class="card-content">
+            <div class="icon-wrapper">
+              <ion-icon name="location-outline"></ion-icon>
+            </div>
+            <span class="card-title">Farm Map</span>
+            <span class="card-subtitle">Location tracking</span>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+        
+        <div class="icon-card tips-card" (click)="navigateToTips()">
+          <div class="card-background"></div>
+          <div class="card-content">
+            <div class="icon-wrapper">
+              <ion-icon name="bulb-outline"></ion-icon>
+            </div>
+            <span class="card-title">Tips</span>
+            <span class="card-subtitle">Expert advice</span>
+          </div>
+          <div class="card-glow"></div>
+        </div>
+      </div>
+    </div>
+  -->
+
+    <!-- Weather Widget -->
+     <!--
+        <div class="weather-widget" *ngIf="weatherData">
+      <div class="weather-header">
+        <ion-icon name="partly-sunny-outline" class="weather-icon"></ion-icon>
+        <div class="weather-info">
+          <span class="weather-temp">{{ weatherData.temperature }}°C</span>
+          <span class="weather-desc">{{ weatherData.description }}</span>
+        </div>
+        <div class="weather-location">
+          <ion-icon name="location-outline"></ion-icon>
+          <span>{{ weatherData.location }}</span>
+        </div>
+      </div>
+      <div class="weather-details">
+        <div class="weather-item">
+          <ion-icon name="water-outline"></ion-icon>
+          <span>{{ weatherData.humidity }}%</span>
+        </div>
+        <div class="weather-item">
+          <ion-icon name="cloudy-outline"></ion-icon>
+          <span>{{ weatherData.pressure }} mb</span>
+        </div>
+      </div>
+    </div>  -->
+  </div>
+</ion-content>

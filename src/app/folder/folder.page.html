@@ -1,0 +1,227 @@
+<ion-header [translucent]="true">
+  <ion-toolbar class="toolbar">
+    <ion-buttons slot="start">
+      <ion-menu-button></ion-menu-button>
+    </ion-buttons>
+    <div class="toolbar-content">
+      <img src="assets/logo-name.png" alt="Mangosense Logo" class="logo-name" />
+    </div>
+    <ion-buttons slot="end">
+      <ion-icon name="person-circle-outline" class="profile-icon"></ion-icon>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="folder-content">
+  <div class="content-wrapper">
+    <!-- History Section -->
+    <div *ngIf="folder === 'History'" class="section-container">
+      <div class="section-header">
+        <ion-icon name="time-outline" class="section-icon"></ion-icon>
+        <h1>Analysis History</h1>
+      </div>
+      <p class="section-description">View your previous mango disease detections and results</p>
+      
+      <div class="feature-cards">
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="document-text-outline"></ion-icon>
+            <h3>Recent Analyses</h3>
+            <p>View your last 10 disease detections</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="calendar-outline"></ion-icon>
+            <h3>Date Filter</h3>
+            <p>Filter results by specific dates</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="download-outline"></ion-icon>
+            <h3>Export Data</h3>
+            <p>Download your analysis history</p>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </div>
+
+    <!-- Reports Section -->
+    <div *ngIf="folder === 'Reports'" class="section-container">
+      <div class="section-header">
+        <ion-icon name="bar-chart-outline" class="section-icon"></ion-icon>
+        <h1>Disease Reports</h1>
+      </div>
+      <p class="section-description">Generate and view detailed reports of your mango health assessments</p>
+      
+      <div class="feature-cards">
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="pie-chart-outline"></ion-icon>
+            <h3>Disease Statistics</h3>
+            <p>View disease occurrence patterns</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="trending-up-outline"></ion-icon>
+            <h3>Trends Analysis</h3>
+            <p>Track disease trends over time</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="share-outline"></ion-icon>
+            <h3>Share Reports</h3>
+            <p>Share reports with experts</p>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </div>
+
+    <!-- Settings Section -->
+    <div *ngIf="folder === 'Settings'" class="section-container">
+      <div class="section-header">
+        <ion-icon name="settings-outline" class="section-icon"></ion-icon>
+        <h1>App Settings</h1>
+      </div>
+      <p class="section-description">Configure your Mangosense preferences and account settings</p>
+      
+      <div class="feature-cards">
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="person-outline"></ion-icon>
+            <h3>Profile Settings</h3>
+            <p>Update your personal information</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="notifications-outline"></ion-icon>
+            <h3>Notifications</h3>
+            <p>Manage app notifications</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="language-outline"></ion-icon>
+            <h3>Language</h3>
+            <p>Change app language</p>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </div>
+
+    <!-- Help Section -->
+    <div *ngIf="folder === 'Help'" class="section-container">
+      <div class="section-header">
+        <ion-icon name="help-circle-outline" class="section-icon"></ion-icon>
+        <h1>Help & Support</h1>
+      </div>
+      <p class="section-description">Learn how to use Mangosense effectively and get support</p>
+      
+      <div class="feature-cards">
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="book-outline"></ion-icon>
+            <h3>User Guide</h3>
+            <p>Step-by-step app instructions</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="chatbubble-outline"></ion-icon>
+            <h3>FAQ</h3>
+            <p>Frequently asked questions</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="mail-outline"></ion-icon>
+            <h3>Contact Support</h3>
+            <p>Get help from our team</p>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </div>
+
+    <!-- Tips Section -->
+    <div *ngIf="folder === 'Tips'" class="section-container">
+      <div class="section-header">
+        <ion-icon name="bulb-outline" class="section-icon"></ion-icon>
+        <h1>Growing Tips</h1>
+      </div>
+      <p class="section-description">Expert advice for maintaining healthy mango trees</p>
+      
+      <div class="feature-cards">
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="leaf-outline"></ion-icon>
+            <h3>Disease Prevention</h3>
+            <p>Tips to prevent mango diseases</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="water-outline"></ion-icon>
+            <h3>Watering Guide</h3>
+            <p>Optimal watering schedules</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card">
+          <ion-card-content>
+            <ion-icon name="nutrition-outline"></ion-icon>
+            <h3>Fertilization</h3>
+            <p>Proper nutrition for mango trees</p>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </div>
+
+    <!-- Default/Fallback Content -->
+    <div *ngIf="!['History', 'Reports', 'Settings', 'Help', 'Tips'].includes(folder)" class="section-container">
+      <div class="section-header">
+        <ion-icon name="folder-outline" class="section-icon"></ion-icon>
+        <h1 class="capitalize">{{ folder }}</h1>
+      </div>
+      <p class="section-description">Welcome to Mangosense - Your Smart Mango Disease Detection App</p>
+      
+      <div class="feature-cards">
+        <ion-card class="feature-card" routerLink="/home">
+          <ion-card-content>
+            <ion-icon name="camera-outline"></ion-icon>
+            <h3>Start Analysis</h3>
+            <p>Detect diseases in your mango trees</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card" routerLink="/pages/history">
+          <ion-card-content>
+            <ion-icon name="time-outline"></ion-icon>
+            <h3>View History</h3>
+            <p>Check previous analyses</p>
+          </ion-card-content>
+        </ion-card>
+        
+        <ion-card class="feature-card" routerLink="/pages/tips">
+          <ion-card-content>
+            <ion-icon name="bulb-outline"></ion-icon>
+            <h3>Growing Tips</h3>
+            <p>Learn mango care techniques</p>
+          </ion-card-content>
+        </ion-card>
+      </div>
+    </div>
+  </div>
+</ion-content>

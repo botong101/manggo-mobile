@@ -1,0 +1,48 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>Analysis History</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="history-content">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Analysis History</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="history-header">
+    <ion-icon name="time-outline" class="history-icon"></ion-icon>
+    <h2>Your Recent Analyses</h2>
+    <p class="history-description">Review your previous mango disease detections and results.</p>
+  </div>
+
+  <ion-spinner *ngIf="isLoading" name="crescent" class="center-spinner"></ion-spinner>
+
+  <ion-list *ngIf="!isLoading && analysisHistory.length > 0" class="history-list">
+    <ion-item *ngFor="let item of analysisHistory" class="history-item" lines="none">
+      <ion-avatar slot="start" class="history-avatar">
+        <ion-icon name="leaf-outline"></ion-icon>
+      </ion-avatar>
+      <ion-label>
+        <div class="history-row">
+          <h3 class="history-date">{{ item.date | date:'mediumDate' }}</h3>
+          <ion-badge class="history-badge" [color]="item.result === 'Positive' ? 'danger' : 'success'">
+            {{ item.result }}
+          </ion-badge>
+        </div>
+        <p class="history-details">{{ item.details }}</p>
+      </ion-label>
+      <ion-icon slot="end" name="chevron-forward-outline" class="chevron-icon"></ion-icon>
+    </ion-item>
+  </ion-list>
+
+  <div *ngIf="!isLoading && analysisHistory.length === 0 && !error" class="empty-history">
+    <ion-icon name="document-outline" class="empty-icon"></ion-icon>
+    <p>No analysis history found.</p>
+  </div>
+  <div *ngIf="error" class="error-message">
+    <ion-icon name="alert-circle-outline" class="error-icon"></ion-icon>
+    {{ error }}
+  </div>
+</ion-content>

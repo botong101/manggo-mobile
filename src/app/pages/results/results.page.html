@@ -1,0 +1,111 @@
+<ion-header>
+  <ion-toolbar class="toolbar">
+    <ion-buttons slot="start">
+      <ion-menu-button class="menu-button"></ion-menu-button>
+    </ion-buttons>
+    <div class="toolbar-content">
+      <img src="assets/logo-name.png" alt="Mangosense Logo" class="logo-name" />
+    </div>
+    <ion-buttons slot="end">
+      <ion-icon name="person-circle-outline" class="profile-icon"></ion-icon>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="results-content">
+  <div class="content-wrapper">
+    <ion-button fill="clear" class="back-arrow" (click)="goBack()">
+      <ion-icon name="arrow-back-outline"></ion-icon>
+    </ion-button>
+
+    <!-- Loading state while verification modal is shown -->
+    <div *ngIf="!isVerified" class="verification-pending">
+      <div class="pending-content">
+        <ion-spinner name="crescent"></ion-spinner>
+        <h3>Please verify the detection result</h3>
+        <p>A verification modal should appear shortly...</p>
+      </div>
+    </div>
+
+    <!-- Results section - only show after verification -->
+    <div class="results-section" *ngIf="isVerified">
+      <h2 class="page-title">Analysis Results</h2>
+      
+      <!-- Image Display -->
+      <div class="image-container">
+        <div class="image-placeholder">
+          <img *ngIf="image" [src]="image" alt="Analyzed Image" class="analyzed-image" />
+          <div *ngIf="!image" class="placeholder-content">
+            <ion-icon name="image-outline"></ion-icon>
+            <p>No image available</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Disease Result -->
+      <div class="main-result-card">
+        <div class="result-header">
+          <ion-icon name="medical-outline" class="result-icon"></ion-icon>
+          <h3 class="result-title">Primary Detection</h3>
+        </div>
+        <h1 class="main-disease-text">
+          {{ mainDisease || 'Processing...' }}
+          <ion-badge *ngIf="isVerified" color="success" style="margin-left:8px;">Verified</ion-badge>
+        </h1>
+        <p class="confidence-text" *ngIf="confidenceLevel">
+          Confidence: {{ confidenceLevel }}
+        </p>
+      </div>
+
+      <!-- Top Predictions -->
+      <div class="predictions-card" *ngIf="probabilities.length > 0">
+        <div class="card-header">
+          <ion-icon name="analytics-outline" class="card-icon"></ion-icon>
+          <h3 class="card-title">Top Predictions</h3>
+        </div>
+        <div class="predictions-list">
+          <div *ngFor="let prob of getTopProbabilities(); let i = index" class="prediction-item">
+            <div class="prediction-rank">{{ i + 1 }}</div>
+            <div class="prediction-details">
+              <span class="prediction-name">{{ prob.class }}</span>
+              <span class="prediction-confidence" *ngIf="prob.confidence">
+                {{ formatConfidence(prob.confidence) }}
+              </span>
+            </div>
+            <div class="confidence-bar">
+              <div class="confidence-fill" [style.width.%]="prob.confidence"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Disease Information -->
+      <div class="info-card">
+        <div class="card-header">
+          <ion-icon name="information-circle-outline" class="card-icon"></ion-icon>
+          <h3 class="card-title">Disease Information</h3>
+        </div>
+        <div class="info-content">
+          <p class="disease-description">{{ diseaseInfo }}</p>
+          <div class="treatment-section" *ngIf="treatment">
+            <h4>Treatment Recommendation</h4>
+            <p>{{ treatment }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <ion-button class="primary-button" expand="block" (click)="retakePhoto()">
+          <ion-icon slot="start" name="camera-outline"></ion-icon>
+          RETAKE PHOTO
+        </ion-button>
+        
+        <ion-button class="secondary-button" expand="block" fill="outline" (click)="goBack()">
+          <ion-icon slot="start" name="home-outline"></ion-icon>
+          BACK TO HOME
+        </ion-button>
+      </div>
+    </div>
+  </div>
+</ion-content>

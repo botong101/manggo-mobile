@@ -1,0 +1,31 @@
+ion-content {
+  --background: #f9f9d5;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.loader-logo {
+  margin-top: 250px;
+  height: 300px;      
+  width: auto;        
+  max-width: 60vw;   
+  max-height: 30vh;   
+  background: none;
+}
+
+ion-progress-bar {
+  --background: #f3e895;
+  --progress-background: #09c567;
+}
+
+p {
+    color: #333;
+    font-size: 1.2em;
+    text-align: center;
+    margin-top: 10px;
+}

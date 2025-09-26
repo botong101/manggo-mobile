@@ -1,0 +1,292 @@
+$green-primary: #457800;
+$green-secondary: #8dc63f;
+$green-light: #a8d76a;
+$cream-bg: #f9f9d5;
+$white: #ffffff;
+$text-dark: #2c3e50;
+$text-light: #7f8c8d;
+$shadow: rgba(0, 0, 0, 0.1);
+
+.mangosense-menu {
+  --ion-background-color: #f9f9d5;
+  
+  ion-content {
+    --background: linear-gradient(180deg, #f9f9d5 0%, #e8f5e8 100%);
+  }
+
+  .menu-header {
+    --background: linear-gradient(135deg, #457800, #8dc63f);
+    --color: white;
+    padding: 16px 0;
+    
+    .menu-logo-section {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      
+      .menu-logo {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        margin-right: 16px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        
+        @media (max-width: 480px) {
+          width: 40px;
+          height: 40px;
+          margin-right: 12px;
+        }
+      }
+      
+      .app-info {
+        h2 {
+          font-size: 1.3rem;
+          font-weight: 700;
+          margin: 0;
+          
+          @media (max-width: 480px) {
+            font-size: 1.1rem;
+          }
+        }
+        
+        p {
+          font-size: 0.9rem;
+          opacity: 0.9;
+          margin: 4px 0 0 0;
+        }
+      }
+    }
+  }
+
+  .user-section {
+    background: rgba(255,255,255,0.9);
+    margin: 16px;
+    border-radius: 12px;
+    
+    .user-info {
+      --padding-start: 16px;
+      --padding-end: 16px;
+      
+      ion-avatar {
+        width: 48px;
+        height: 48px;
+        
+        ion-icon {
+          font-size: 48px;
+          color: #457800;
+        }
+      }
+      
+      ion-label {
+        h3 {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #457800;
+        }
+        
+        p {
+          font-size: 0.9rem;
+          color: #666;
+        }
+      }
+    }
+  }
+
+  #menu-list {
+    background: transparent;
+    padding: 0 16px;
+    
+    ion-list-header {
+      --color: $green-primary;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding-left: 0;
+      margin: 24px 0 8px 0;
+      
+      ion-label {
+        font-weight: 600;
+      }
+    }
+    
+    .menu-item {
+      --padding-start: 20px;
+      --padding-end: 20px;
+      margin: 4px 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px $shadow;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      }
+      
+      &.selected {
+        --background: #457800;
+        --color: white;
+        transform: translateX(4px);
+        box-shadow: 0 4px 15px rgba(69, 120, 0, 0.3);
+        
+        ion-icon {
+          color: white;
+        }
+      }
+      
+      ion-icon {
+        color: #457800;
+        font-size: 1.2rem;
+        margin-right: 16px;
+        transition: color 0.3s ease;
+      }
+      
+      ion-label {
+        font-weight: 500;
+        font-size: 0.95rem;
+      }
+      
+      ion-badge {
+        font-size: 0.7rem;
+      }
+    }
+  }
+
+  .menu-footer {
+    padding: 20px;
+    text-align: center;
+    color: #666;
+    
+    p {
+      margin: 4px 0;
+      font-size: 0.8rem;
+      
+      &:first-child {
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+// iOS specific styles
+ion-menu.ios {
+  .mangosense-menu {
+    ion-content {
+      --padding-start: 0;
+      --padding-end: 0;
+      --padding-top: 0;
+      --padding-bottom: 0;
+    }
+  }
+}
+
+// Material Design specific styles  
+ion-menu.md {
+  .mangosense-menu {
+    ion-content {
+      --padding-start: 0;
+      --padding-end: 0;
+      --padding-top: 0;
+      --padding-bottom: 0;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 480px) {
+  .mangosense-menu {
+    .user-section .user-info {
+      --padding-start: 12px;
+      --padding-end: 12px;
+      --padding-top: 12px;
+      --padding-bottom: 12px;
+      
+      ion-avatar {
+        width: 40px;
+        height: 40px;
+        
+        ion-icon {
+          font-size: 40px;
+        }
+      }
+    }
+    
+    #menu-list {
+      padding: 0 12px;
+      
+      .menu-item {
+        --padding-start: 12px;
+        --padding-end: 12px;
+      }
+    }
+  }
+}
+
+ion-menu.md ion-item.selected {
+  --background: rgba(var(--ion-color-primary-rgb), 0.14);
+}
+
+ion-menu.md ion-item.selected ion-icon {
+  color: var(--ion-color-primary);
+}
+
+ion-menu.md ion-item ion-icon {
+  color: #616e7e;
+}
+
+ion-menu.md ion-item ion-label {
+  font-weight: 500;
+}
+
+ion-menu.ios ion-content {
+  --padding-bottom: 20px;
+}
+
+ion-menu.ios ion-list {
+  padding: 20px 0 0 0;
+}
+
+ion-menu.ios ion-note {
+  line-height: 24px;
+  margin-bottom: 20px;
+}
+
+ion-menu.ios ion-item {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --min-height: 50px;
+}
+
+ion-menu.ios ion-item.selected ion-icon {
+  color: var(--ion-color-primary);
+}
+
+ion-menu.ios ion-item ion-icon {
+  font-size: 24px;
+  color: #73849a;
+}
+
+ion-menu.ios ion-list#labels-list ion-list-header {
+  margin-bottom: 8px;
+}
+
+ion-menu.ios ion-list-header,
+ion-menu.ios ion-note {
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+ion-menu.ios ion-note {
+  margin-bottom: 8px;
+}
+
+ion-note {
+  display: inline-block;
+  font-size: 16px;
+
+  color: var(--ion-color-medium-shade);
+}
+
+ion-item.selected {
+  --color: var(--ion-color-primary);
+}

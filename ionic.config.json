@@ -1,0 +1,7 @@
+{
+  "name": "MangoSense",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

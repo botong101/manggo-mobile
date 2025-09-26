@@ -1,0 +1,163 @@
+<ion-content>
+  <div id="header">
+    <div id="app-bar">
+      <div id="logo">
+        <img src="assets/logo2.png" alt="Logo">
+      </div>
+      <div></div>
+    </div>
+  </div>
+
+  <div class="wrapper">
+    <ion-card class="form-wrapper">
+      <h1>Register</h1>
+      <ion-card-content>
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+          <ion-item>
+            <ion-icon name="person"></ion-icon>
+            <ion-input 
+              type="text" 
+              label="First Name" 
+              labelPlacement="floating" 
+              placeholder="Enter first name" 
+              formControlName="firstName"
+              required>
+            </ion-input>
+          </ion-item>
+          
+          <ion-item>
+            <ion-icon name="person"></ion-icon>
+            <ion-input 
+              type="text" 
+              label="Last Name" 
+              labelPlacement="floating" 
+              placeholder="Enter last name" 
+              formControlName="lastName"
+              required>
+            </ion-input>
+          </ion-item>
+          
+          <!-- Province -->
+          <ion-item>
+            <ion-icon name="location"></ion-icon>
+            <ion-select
+              label="Province"
+              labelPlacement="floating"
+              placeholder="Select province"
+              formControlName="province"
+              (ionChange)="onProvinceChange($event)">
+              <ion-select-option *ngFor="let prov of provinces" [value]="prov">
+                {{ prov }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <!-- City -->
+          <ion-item>
+            <ion-icon name="business"></ion-icon>
+            <ion-select
+              label="City/Municipality"
+              labelPlacement="floating"
+              placeholder="Select city/municipality"
+              formControlName="city"
+              [disabled]="!filteredCities.length"
+              (ionChange)="onCityChange($event)">
+              <ion-select-option *ngFor="let city of filteredCities" [value]="city">
+                {{ city }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <!-- Barangay -->
+          <ion-item>
+            <ion-icon name="home"></ion-icon>
+            <ion-select
+              label="Barangay"
+              labelPlacement="floating"
+              placeholder="Select barangay"
+              formControlName="barangay"
+              [disabled]="!filteredBarangays.length">
+              <ion-select-option *ngFor="let brgy of filteredBarangays" [value]="brgy">
+                {{ brgy }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+
+          <ion-item>
+            <ion-icon name="mail-open"></ion-icon>
+            <ion-input
+              type="text"
+              label="Postal Code"
+              labelPlacement="floating"
+              placeholder="Enter postal code"
+              formControlName="postalCode"
+              required>
+            </ion-input>
+          </ion-item>
+          
+          <ion-item>
+            <ion-icon name="mail"></ion-icon>
+            <ion-input 
+              type="email" 
+              label="Email" 
+              labelPlacement="floating" 
+              placeholder="Enter email" 
+              formControlName="email"
+              required>
+            </ion-input>
+          </ion-item>
+          
+          <ion-item>
+            <ion-icon name="lock-closed"></ion-icon>
+            <ion-input 
+              type="password" 
+              label="Password" 
+              labelPlacement="floating" 
+              placeholder="Enter password" 
+              formControlName="password"
+              required>
+            </ion-input>
+          </ion-item>
+          
+          <ion-item>
+            <ion-icon name="lock-closed"></ion-icon>
+            <ion-input 
+              type="password" 
+              label="Confirm Password" 
+              labelPlacement="floating" 
+              placeholder="Confirm password" 
+              formControlName="confirmPassword"
+              required>
+            </ion-input>
+          </ion-item>
+
+          
+
+          <ion-item lines="none" class="terms-item">
+            <ion-checkbox slot="start" formControlName="agree"></ion-checkbox>
+            <ion-label>
+              I agree to the <a href="#" target="_blank">terms and conditions</a>
+            </ion-label>
+          </ion-item>
+
+          <ion-button 
+            type="submit" 
+            expand="block" 
+            class="register-button"
+            [disabled]="isSubmitting"
+            (click)="register()">
+            
+            <ion-spinner name="crescent" *ngIf="isSubmitting"></ion-spinner>
+            <span *ngIf="!isSubmitting">Register</span>
+          </ion-button>
+        </form>
+
+        <div class="login-link">
+          Already have an account?
+          <a (click)="goToLogin()">Login</a>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

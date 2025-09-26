@@ -1,0 +1,56 @@
+<ion-header>
+  <ion-toolbar class="toolbar">
+    <ion-buttons slot="start">
+      <ion-menu-button class="menu-button"></ion-menu-button>
+    </ion-buttons>
+    <div class="toolbar-content">
+      <img src="assets/logo-name.png" alt="Mangosense Logo" class="logo-name" />
+    </div>
+    <ion-buttons slot="end">
+      <ion-icon name="person-circle-outline" class="profile-icon"></ion-icon>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="photo-preview-content">
+  <div class="content-wrapper">
+    <ion-button fill="clear" class="back-arrow" (click)="goBack()">
+      <ion-icon name="arrow-back-outline"></ion-icon>
+    </ion-button>
+
+    <div class="preview-section">
+      <h2 class="page-title">Preview Your Photo</h2>
+      
+      <div class="image-container">
+        <div class="image-placeholder">
+          <img *ngIf="imageData" [src]="imageData" alt="Preview" class="preview-image" />
+          <div *ngIf="!imageData" class="placeholder-content">
+            <ion-icon name="image-outline"></ion-icon>
+            <p>No image selected</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="instruction-section">
+        <p class="instruction-text">
+          Ready to analyze your mango?
+        </p>
+        <p class="instruction-subtext">
+          Click analyze to proceed or go back to take another photo
+        </p>
+      </div>
+
+      <div class="action-buttons">
+        <ion-button class="confirm-button" expand="block" (click)="confirm()">
+          <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+          ANALYZE NOW
+        </ion-button>
+        
+        <ion-button class="retake-button" expand="block" fill="outline" (click)="goBack()">
+          <ion-icon slot="start" name="camera-outline"></ion-icon>
+          RETAKE PHOTO
+        </ion-button>
+      </div>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,63 @@
+<ion-content>
+  <div id="header">
+    <div id="app-bar">
+      <div id="logo">
+        <img src="assets/logo2.png" alt="Logo">
+      </div>
+      <div></div>
+    </div>
+  </div>
+
+  <div class="wrapper">
+    <ion-card class="form-wrapper">
+      <h1>Login</h1>
+      <ion-card-content>
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+          <ion-item>
+            <ion-icon name="mail"></ion-icon>
+            <ion-input 
+              type="email" 
+              label="Email" 
+              labelPlacement="floating" 
+              placeholder="Enter email" 
+              formControlName="email"
+              required>
+            </ion-input>
+          </ion-item>
+          
+          <ion-item>
+            <ion-icon name="lock-closed"></ion-icon>
+            <ion-input 
+              type="password" 
+              label="Password" 
+              labelPlacement="floating" 
+              placeholder="Enter password" 
+              formControlName="password"
+              required>
+            </ion-input>
+          </ion-item>
+
+          <ion-button 
+            type="submit" 
+            expand="block" 
+            class="login-button"
+            [disabled]="isSubmitting"
+            (click)="onSubmit()">
+            
+            @if (isSubmitting) {
+              <ion-spinner name="crescent"></ion-spinner>
+            }
+            @if (!isSubmitting) {
+              <span>Sign in</span>
+            }
+          </ion-button>
+        </form>
+
+        <div class="register-link">
+          Don't have an account?
+          <a (click)="goToRegister()">Register</a>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>
