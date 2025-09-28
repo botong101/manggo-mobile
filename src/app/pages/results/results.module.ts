@@ -7,7 +7,6 @@ import { IonicModule } from '@ionic/angular';
 import { ResultsPageRoutingModule } from './results-routing.module';
 
 import { ResultsPage } from './results.page';
-import { VerifyModalComponent } from './verify-modal.component';
 
 @NgModule({
   imports: [
@@ -15,8 +14,7 @@ import { VerifyModalComponent } from './verify-modal.component';
     FormsModule,
     IonicModule,
     ResultsPageRoutingModule,
-    ResultsPage,
-    VerifyModalComponent
+    ResultsPage
   ]
 })
 export class ResultsPageModule {}

@@ -142,38 +142,44 @@ export class ApiService {
     });
   }
 
-  async predictImageWithLocation(file: File, detectionType: 'fruit' | 'leaf'): Promise<any> {
-    console.log('Starting prediction with location extraction...');
+  async predictImageWithLocation(
+    file: File, 
+    detectionType: 'fruit' | 'leaf',
+    exifLocationData?: any,
+    locationConsentGiven?: boolean
+  ): Promise<any> {
+    console.log('Starting prediction with EXIF location extraction...');
     
     try {
-      const location = await this.extractLocationFromImageWithFallback(file);
-      
       const formData = new FormData();
       formData.append('image', file);
       formData.append('detection_type', detectionType);
       
-      if (location) {
-        formData.append('latitude', location.latitude.toString());
-        formData.append('longitude', location.longitude.toString());
-        formData.append('location_source', location.source);
-        if (location.accuracy) {
-          formData.append('location_accuracy', location.accuracy.toString());
+      // Add EXIF location data if available and consent given
+      if (exifLocationData && locationConsentGiven && exifLocationData.hasGps) {
+        formData.append('latitude', exifLocationData.latitude.toString());
+        formData.append('longitude', exifLocationData.longitude.toString());
+        formData.append('location_source', 'exif');
+        formData.append('location_consent_given', 'true');
+        if (exifLocationData.address) {
+          formData.append('location_address', exifLocationData.address);
         }
-        console.log('Location data added to prediction request:', location);
+        console.log('📍 EXIF location data added to prediction request:', exifLocationData);
       } else {
-        console.log('No location data available for prediction');
+        console.log('📍 No EXIF location data or consent not given');
+        formData.append('location_consent_given', 'false');
       }
 
       const headers = this.getAuthHeaders();
       
       return firstValueFrom(this.http.post(`${this.apiUrl}/predict/`, formData, { headers })
         .pipe(
-          tap(response => console.log('Prediction API response:', response)),
+          tap(response => console.log('✅ Prediction API response:', response)),
           catchError(this.handleError)
         ));
         
     } catch (error) {
-      console.error('Error in predictImageWithLocation:', error);
+      console.error('❌ Error in predictImageWithLocation:', error);
       return firstValueFrom(this.predictImage(file, detectionType));
     }
   }
@@ -191,6 +197,89 @@ export class ApiService {
         tap(response => console.log('Prediction API response (no location):', response)),
         catchError(this.handleError)
       );
+  }
+
+  /**
+   * Preview prediction - only for getting detection result, no database save
+   * Used in verify page to show symptoms before user confirmation
+   */
+  async previewPrediction(file: File, detectionType: 'fruit' | 'leaf'): Promise<any> {
+    console.log('🔍 Making preview prediction call (no database save)...');
+    
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('detection_type', detectionType);
+      formData.append('preview_only', 'true'); // Flag to prevent database save
+      
+      const headers = this.getAuthHeaders();
+      
+      return firstValueFrom(this.http.post(`${this.apiUrl}/predict/`, formData, { headers })
+        .pipe(
+          tap(response => console.log('✅ Preview prediction response:', response)),
+          catchError(this.handleError)
+        ));
+        
+    } catch (error) {
+      console.error('❌ Error in previewPrediction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save prediction with user verification data to admin/database
+   * Used after user confirms the analysis
+   */
+  async savePredictionWithVerification(
+    file: File,
+    detectionType: 'fruit' | 'leaf',
+    userVerification: {
+      isDetectionCorrect: boolean;
+      userFeedback?: string;
+    },
+    locationData?: any,
+    locationConsentGiven?: boolean
+  ): Promise<any> {
+    console.log('💾 Saving prediction with user verification...');
+    
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('detection_type', detectionType);
+      formData.append('preview_only', 'false'); // Ensure this saves to database
+      
+      // Add user verification data
+      formData.append('is_detection_correct', userVerification.isDetectionCorrect.toString());
+      if (userVerification.userFeedback) {
+        formData.append('user_feedback', userVerification.userFeedback);
+      }
+      
+      // Add location data if available - always save location but track accuracy confirmation
+      if (locationData) {
+        formData.append('latitude', locationData.latitude.toString());
+        formData.append('longitude', locationData.longitude.toString());
+        formData.append('location_source', locationData.source || 'device_gps');
+        formData.append('location_accuracy_confirmed', (locationConsentGiven || false).toString()); // User's accuracy confirmation
+        if (locationData.address) {
+          formData.append('location_address', locationData.address);
+        }
+        console.log('📍 Location data added to save request with accuracy confirmation:', locationConsentGiven);
+      } else {
+        formData.append('location_consent_given', 'false');
+      }
+
+      const headers = this.getAuthHeaders();
+      
+      return firstValueFrom(this.http.post(`${this.apiUrl}/predict/`, formData, { headers })
+        .pipe(
+          tap(response => console.log('✅ Prediction saved with verification:', response)),
+          catchError(this.handleError)
+        ));
+        
+    } catch (error) {
+      console.error('❌ Error in savePredictionWithVerification:', error);
+      throw error;
+    }
   }
 
   saveConfirmation(confirmation: UserConfirmation): Observable<any> {

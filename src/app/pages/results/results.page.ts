@@ -1,9 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { IonicModule, LoadingController, ToastController, ModalController } from '@ionic/angular';
+import { IonicModule, LoadingController, ToastController } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { VerifyModalComponent } from './verify-modal.component';
 import { ApiService, LocationData } from 'src/app/services/apiservice.service';
 
 @Component({
@@ -18,6 +17,7 @@ export class ResultsPage implements OnInit {
   image: string | null = null;
   imageFile: File | null = null;
   mainDisease: string = '';
+  actualDisease: string = ''; // Store the actual detected disease
   probabilities: any[] = [];
   diseaseInfo: string = '';
   treatment: string = '';
@@ -28,6 +28,9 @@ export class ResultsPage implements OnInit {
   isLoading = false;
   isVerified = false;
   verificationResult: boolean | null = null;
+
+  // Confidence threshold for displaying "Unknown"
+  private readonly UNKNOWN_CONFIDENCE_THRESHOLD = 50;
 
   indicationsMap: { [key: string]: string[] } = {
     'Anthracnose': [
@@ -87,7 +90,6 @@ export class ResultsPage implements OnInit {
     private http: HttpClient,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
-    private modalCtrl: ModalController,
     private apiService: ApiService
   ) {}
 
@@ -97,20 +99,74 @@ export class ResultsPage implements OnInit {
     this.image = navState?.image || null;
     this.imageFile = navState?.imageFile || null;
     
-    console.log('Results page initialized with:', {
+    // Get the pre-processed detection data from verify page
+    const detectedDisease = navState?.detectedDisease;
+    const confidence = navState?.confidence;
+    
+    console.log('🔍 Results page initialized with:', {
       hasResult: !!this.result,
       hasImage: !!this.image,
       hasImageFile: !!this.imageFile,
+      detectedDisease: detectedDisease,
+      detectedDiseaseType: typeof detectedDisease,
+      detectedDiseaseValid: !!detectedDisease,
+      confidence: confidence,
+      confidenceType: typeof confidence,
+      confidenceValid: confidence !== undefined && confidence !== null,
+      fullNavState: navState,
       resultData: this.result
     });
     
-    if (!this.result || !this.result.success || !this.image) {
-      this.showToast('No result or image found. Please analyze a photo first.');
-      this.router.navigate(['pages/home']);
+    if (!this.image) {
+      this.showToast('No image found. Please analyze a photo first.');
+      this.router.navigate(['pages/home'], { replaceUrl: true, queryParams: { refresh: Date.now() } });
       return;
     }
     
-    this.processResults();
+    // Prioritize processing full result data (which contains top_3_predictions)
+    if (this.result && this.result.data && this.result.data.top_3_predictions) {
+      console.log('✅ Processing full API result with top_3_predictions');
+      this.processResults();
+    } else if (detectedDisease && confidence !== undefined && confidence !== null) {
+      // Fallback to using simple pre-processed data
+      console.log('⚠️ Using simplified pre-processed detection data (no top_3_predictions)');
+      this.mainDisease = detectedDisease;
+      this.confidenceScore = confidence;
+      this.confidenceLevel = this.getConfidenceLevel(confidence);
+      this.diseaseInfo = this.getDiseaseInfo(this.mainDisease);
+      this.treatment = this.getTreatmentInfo(this.mainDisease);
+      this.isVerified = true; // Show results immediately since user already verified
+      
+      console.log('✅ Using pre-processed detection data:', {
+        mainDisease: this.mainDisease,
+        confidenceScore: this.confidenceScore,
+        confidenceLevel: this.confidenceLevel,
+        isVerified: this.isVerified
+      });
+    } else if (this.result) {
+      // Last resort - try to process any available result
+      console.log('⚠️ Processing any available result data');
+      this.processResults();
+    } else {
+      // No data available at all - but still show the page and let user know
+      console.log('❌ No detection data available');
+      this.mainDisease = 'No Detection Data';
+      this.confidenceScore = 0;
+      this.confidenceLevel = 'Unknown';
+      this.diseaseInfo = 'Unable to load detection results. Please try analyzing again.';
+      this.treatment = 'Please retake the photo and try again.';
+      this.isVerified = true; // Show the page anyway
+      
+      this.showToast('No detection result found. Please analyze a photo first.');
+    }
+
+    // Failsafe: Always set verified after 3 seconds to prevent infinite loading
+    setTimeout(() => {
+      if (!this.isVerified) {
+        console.log('⏰ Timeout: Setting isVerified = true to prevent infinite loading');
+        this.isVerified = true;
+      }
+    }, 3000);
   }
 
   processResults() {
@@ -125,18 +181,39 @@ export class ResultsPage implements OnInit {
     
     if (predictionData.primary_prediction) {
       // Extract all the data
-      this.mainDisease = predictionData.primary_prediction.disease;
+      this.actualDisease = predictionData.primary_prediction.disease; // Store actual disease
       this.treatment = predictionData.primary_prediction.treatment;
       this.confidenceScore = predictionData.primary_prediction.confidence_score || 0;
       this.savedImageId = predictionData.saved_image_id || 0;
       
-      this.probabilities = predictionData.top_3_predictions.map((pred: any) => ({
-        class: pred.disease,
-        confidence: pred.confidence,
-        confidence_formatted: pred.confidence_formatted,
-        treatment: pred.treatment,
-        rank: pred.rank
-      }));
+      // Display "Unknown" if confidence is below threshold, otherwise show actual disease
+      if (this.confidenceScore < this.UNKNOWN_CONFIDENCE_THRESHOLD) {
+        this.mainDisease = 'Unknown';
+        console.log(`🔍 Low confidence (${this.confidenceScore}%) - displaying as Unknown, actual: ${this.actualDisease}`);
+      } else {
+        this.mainDisease = this.actualDisease;
+        console.log(`✅ High confidence (${this.confidenceScore}%) - displaying actual disease: ${this.mainDisease}`);
+      }
+      
+      // Process top 3 predictions
+      if (predictionData.top_3_predictions && predictionData.top_3_predictions.length > 0) {
+        this.probabilities = predictionData.top_3_predictions.map((pred: any) => ({
+          class: pred.confidence < this.UNKNOWN_CONFIDENCE_THRESHOLD ? 'Unknown' : pred.disease,
+          actualClass: pred.disease, // Store actual disease name
+          confidence: pred.confidence,
+          confidence_formatted: pred.confidence_formatted,
+          treatment: pred.treatment,
+          rank: pred.rank
+        }));
+        
+        console.log('🎯 Loaded top 3 predictions:', {
+          count: this.probabilities.length,
+          predictions: this.probabilities.map(p => `${p.class}: ${p.confidence}% (actual: ${p.actualClass})`)
+        });
+      } else {
+        console.log('⚠️ No top_3_predictions found in API response');
+        this.probabilities = [];
+      }
       
       this.confidenceLevel = predictionData.prediction_summary.confidence_level;
       this.diseaseInfo = this.getDiseaseInfo(this.mainDisease);
@@ -150,8 +227,8 @@ export class ResultsPage implements OnInit {
       
       console.log('Successfully processed results');
       
-      // Show verification modal after processing results
-      this.openVerificationModal();
+      // Set as verified since we removed the modal
+      this.isVerified = true;
       
     } else {
       console.error('Unexpected response format:', this.result);
@@ -162,75 +239,6 @@ export class ResultsPage implements OnInit {
       
       // Even for errors, set as verified to show something
       this.isVerified = true;
-    }
-  }
-
-  async openVerificationModal() {
-    const indications = this.indicationsMap[this.mainDisease] || [];
-    
-    try {
-      // Extract location data from image if available
-      let locationData: LocationData | null = null;
-      if (this.imageFile) {
-        try {
-          locationData = await this.apiService.extractLocationFromImageWithFallback(this.imageFile);
-          console.log('Location extracted:', locationData);
-        } catch (error) {
-          console.error('Error extracting location:', error);
-        }
-      } else {
-        console.log('No image file available for location extraction');
-      }
-
-      console.log('Opening verification modal with:', {
-        imageId: this.savedImageId,
-        mainDisease: this.mainDisease,
-        confidenceScore: this.confidenceScore,
-        confidenceLevel: this.confidenceLevel,
-        hasLocationData: !!locationData
-      });
-
-      const modal = await this.modalCtrl.create({
-        component: VerifyModalComponent,
-        componentProps: { 
-          mainDisease: this.mainDisease, 
-          indications: indications,
-          imageFile: this.imageFile,
-          locationData: locationData,
-          result: this.result,
-          imageId: this.savedImageId || 0,
-          confidenceScore: this.confidenceScore || 0,
-          confidenceLevel: this.confidenceLevel
-        },
-        cssClass: 'verify-modal-custom',
-        backdropDismiss: false // Prevent dismissing by clicking backdrop
-      });
-      
-      await modal.present();
-
-      const { data } = await modal.onWillDismiss();
-      
-      // Always set as verified after modal dismissal
-      this.isVerified = true;
-      
-      if (data?.verified) {
-        this.verificationResult = data.isCorrect;
-        
-        // Check for errors first
-        if (data.error) {
-          this.showToast(data.error, 'warning');
-        } else if (data.isCorrect) {
-          this.showToast('Thank you for verifying the result!', 'success');
-        } else {
-          this.showToast('Thank you for your feedback! This helps improve our AI.', 'warning');
-        }
-      } else if (data?.cancelled) {
-        this.showToast('Verification skipped', 'warning');
-      }
-      
-    } catch (error) {
-      console.error('Error opening modal:', error);
-      this.isVerified = true; // Show results even if modal fails
     }
   }
 
@@ -268,7 +276,8 @@ export class ResultsPage implements OnInit {
       'Powdery Mildew': 'A fungal disease that causes white, powdery coating on leaves and shoots. It can reduce photosynthesis and fruit quality.',
       'Sooty Mold': 'Black fungal growth that develops on honeydew secreted by insects. While not directly harmful, it reduces photosynthesis.',
       'Black Mold Rot': 'A fungal infection that causes black mold growth on fruits, leading to rapid deterioration and spoilage.',
-      'Stem end Rot': 'A post-harvest disease that affects fruits at the stem end, causing rot and reducing storage life.'
+      'Stem end Rot': 'A post-harvest disease that affects fruits at the stem end, causing rot and reducing storage life.',
+      'Unknown': 'The AI detection confidence is below 50%, making it difficult to accurately identify the condition. Please consult with agricultural experts or try capturing a clearer image for better analysis.'
     };
 
     return diseaseInfoMap[disease] || `Information about ${disease} is being researched. Please consult with agricultural experts for specific guidance.`;
@@ -279,12 +288,40 @@ export class ResultsPage implements OnInit {
     return `${confidence.toFixed(1)}%`;
   }
 
+  getConfidenceLevel(confidence: number): string {
+    if (confidence >= 80) {
+      return 'High';
+    } else if (confidence >= 50) {
+      return 'Medium';
+    } else {
+      return 'Low';
+    }
+  }
+
+  getTreatmentInfo(disease: string): string {
+    const treatmentMap: { [key: string]: string } = {
+      'Anthracnose': 'Apply copper-based fungicides and improve air circulation. Remove infected plant parts and avoid overhead watering.',
+      'Bacterial Canker': 'Prune infected branches, apply copper bactericides, and improve plant hygiene. Avoid wounding during wet conditions.',
+      'Cutting Weevil': 'Use appropriate insecticides, maintain field hygiene, and monitor regularly for early detection.',
+      'Die Back': 'Prune affected branches, improve drainage, and apply appropriate fungicides. Ensure proper nutrition and avoid stress.',
+      'Gall Midge': 'Use systemic insecticides, maintain field sanitation, and monitor for adult flies during peak activity periods.',
+      'Healthy': 'Continue regular care including proper watering, fertilization, and monitoring for early signs of problems.',
+      'Powdery Mildew': 'Apply sulfur-based fungicides, improve air circulation, and avoid overhead irrigation.',
+      'Sooty Mold': 'Control the underlying insect problem (aphids, scales) and wash off mold with water.',
+      'Black Mold Rot': 'Harvest fruits at proper maturity, handle carefully to avoid wounds, and store in proper conditions.',
+      'Stem end Rot': 'Ensure proper fruit handling, avoid harvesting wet fruits, and maintain clean storage conditions.',
+      'Unknown': 'Consider consulting with local agricultural experts or extension services. Try capturing a clearer, well-lit image from different angles. Monitor the plant closely for any changes and apply general preventive care practices.'
+    };
+
+    return treatmentMap[disease] || 'Consult with local agricultural experts for specific treatment recommendations.';
+  }
+
   goBack() {
-    this.router.navigate(['pages/home']);
+    this.router.navigate(['pages/home'], { replaceUrl: true, queryParams: { refresh: Date.now() } });
   }
 
   retakePhoto() {
-    this.router.navigate(['pages/home']);
+    this.router.navigate(['pages/home'], { replaceUrl: true, queryParams: { refresh: Date.now() } });
   }
   
   private async showToast(message: string, color: 'success' | 'warning' | 'danger' = 'danger') {

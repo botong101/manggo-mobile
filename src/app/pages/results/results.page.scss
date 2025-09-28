@@ -202,7 +202,7 @@ $danger: #dc3545;
     }
   }
 
-  .predictions-card, .info-card {
+  .predictions-card, .info-card, .simple-confidence-card {
     background: $white;
     border-radius: 16px;
     padding: 20px;
@@ -483,6 +483,7 @@ $danger: #dc3545;
   }
   
   .predictions-card,
+  .simple-confidence-card,
   .info-card {
     opacity: 0.7;
     pointer-events: none;
@@ -506,6 +507,7 @@ $danger: #dc3545;
   
   .main-result-card,
   .predictions-card,
+  .simple-confidence-card,
   .info-card {
     padding: 16px;
     margin-bottom: 8px;
@@ -550,6 +552,7 @@ $danger: #dc3545;
   
   .main-result-card,
   .predictions-card,
+  .simple-confidence-card,
   .info-card {
     padding: 28px;
     margin-bottom: 20px;

@@ -1,4 +1,4 @@
-<ion-header>
+﻿<ion-header>
   <ion-toolbar class="toolbar">
     <ion-buttons slot="start">
       <ion-menu-button class="menu-button"></ion-menu-button>
@@ -12,14 +12,40 @@
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="photo-preview-content">
+<ion-content class="photo-preview-content" [scrollY]="true">
   <div class="content-wrapper">
     <ion-button fill="clear" class="back-arrow" (click)="goBack()">
       <ion-icon name="arrow-back-outline"></ion-icon>
     </ion-button>
 
+    <!-- Progress Steps -->
+    <div class="steps-container">
+      <div class="step-progress">
+        <div class="step-item" [class.active]="currentStep >= 1" [class.completed]="currentStep > 1">
+          <div class="step-circle">1</div>
+          <span>Symptoms</span>
+        </div>
+        <div class="step-line" [class.active]="currentStep > 1"></div>
+        <div class="step-item" [class.active]="currentStep >= 2" [class.completed]="currentStep > 2">
+          <div class="step-circle">2</div>
+          <span>Location</span>
+        </div>
+        <div class="step-line" [class.active]="currentStep > 2"></div>
+        <div class="step-item" [class.active]="currentStep >= 3" [class.completed]="currentStep > 3">
+          <div class="step-circle">3</div>
+          <span>Comments</span>
+        </div>
+        <div class="step-line" [class.active]="currentStep > 3"></div>
+        <div class="step-item" [class.active]="currentStep >= 4">
+          <div class="step-circle">4</div>
+          <span>Confirm</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Preview Section -->
     <div class="preview-section">
-      <h2 class="page-title">Preview Your Photo</h2>
+      <h2 class="page-title">{{ getStepTitle() }}</h2>
       
       <div class="image-container">
         <div class="image-placeholder">
@@ -30,23 +56,218 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <div class="instruction-section">
-        <p class="instruction-text">
-          Ready to analyze your mango?
-        </p>
-        <p class="instruction-subtext">
-          Click analyze to proceed or go back to take another photo
-        </p>
+    <!-- Step Content -->
+    <div class="step-content-wrapper">
+      <!-- Step 1: Symptoms Detection Confirmation -->
+      <div *ngIf="currentStep === 1 && !apiCallFailed" class="step-content">
+        <div class="symptoms-section">
+          <div class="symptoms-header">
+            <ion-icon name="eye-outline"></ion-icon>
+            <span>Check if you see these symptoms:</span>
+          </div>
+          <div class="symptoms-card">
+            <ul class="symptoms-list">
+              <li *ngFor="let symptom of symptoms">{{ symptom }}</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div class="verification-section">
+          <h3 class="section-title">Do you see these symptoms?</h3>
+          <div class="radio-group">
+            <ion-radio-group [(ngModel)]="isDetectionCorrect" (ionChange)="onDetectionChange($event)">
+              <ion-item class="radio-item" button>
+                <ion-radio slot="start" value="true"></ion-radio>
+                <ion-label>
+                  <h4>✅ Yes, I can see these symptoms</h4>
+                  <p>The symptoms match what I observe</p>
+                </ion-label>
+              </ion-item>
+              
+              <ion-item class="radio-item" button>
+                <ion-radio slot="start" value="false"></ion-radio>
+                <ion-label>
+                  <h4>❌ No, I don't see these symptoms</h4>
+                  <p>The plant looks different from the description</p>
+                </ion-label>
+              </ion-item>
+            </ion-radio-group>
+          </div>
+        </div>
       </div>
 
-      <div class="action-buttons">
-        <ion-button class="confirm-button" expand="block" (click)="confirm()">
-          <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
-          ANALYZE NOW
+      <!-- Step 2: Location Confirmation -->
+      <div *ngIf="currentStep === 2" class="step-content">
+        <div class="location-section">
+          <h3 class="section-title">
+            <ion-icon name="location-outline"></ion-icon>
+            Location Information
+          </h3>
+          <p class="section-subtitle">Please confirm if this detected location is accurate</p>
+          
+          <div class="location-info-card">
+            <div class="location-details">
+              <h4>📍 Detected Location</h4>
+              <div class="detected-location" *ngIf="detectedLocation">
+                <p class="location-address">{{ detectedLocation.address || 'Loading address...' }}</p>
+                <p class="location-coordinates">
+                  {{ detectedLocation.latitude | number:'1.4-4' }}, {{ detectedLocation.longitude | number:'1.4-4' }}
+                </p>
+                <p class="location-source">Source: {{ detectedLocation.source | titlecase }}</p>
+              </div>
+              <div class="no-location" *ngIf="!detectedLocation">
+                <p class="location-address">📍 No location data found in image</p>
+                <p class="location-note">Your device location will be used if available</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="radio-group">
+            <ion-radio-group [(ngModel)]="locationAccuracyConfirmed" (ionChange)="onLocationChange($event)">
+              <ion-item class="radio-item" button>
+                <ion-radio slot="start" value="true"></ion-radio>
+                <ion-label>
+                  <h4>✅ Yes, this location is accurate</h4>
+                  <p>The detected location correctly represents where this photo was taken</p>
+                </ion-label>
+              </ion-item>
+              
+              <ion-item class="radio-item" button>
+                <ion-radio slot="start" value="false"></ion-radio>
+                <ion-label>
+                  <h4>❌ No, this location is not accurate</h4>
+                  <p>The location data will still be saved but marked as unconfirmed</p>
+                </ion-label>
+              </ion-item>
+            </ion-radio-group>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Additional Comments -->
+      <div *ngIf="currentStep === 3" class="step-content">
+        <div class="comments-section">
+          <h3 class="section-title">
+            <ion-icon name="chatbubble-outline"></ion-icon>
+            Additional Comments
+          </h3>
+          <p class="section-subtitle">Optional: Share any observations or feedback</p>
+          
+          <ion-textarea
+            [(ngModel)]="userFeedback"
+            placeholder="Add any observations or comments about the plant condition..."
+            rows="4"
+            class="feedback-textarea">
+          </ion-textarea>
+        </div>
+      </div>
+
+      <!-- Step 4: Final Confirmation -->
+      <div *ngIf="currentStep === 4" class="step-content">
+        <div class="summary-section">
+          <h3 class="section-title">
+            <ion-icon name="checkmark-circle-outline"></ion-icon>
+            Review & Confirm
+          </h3>
+          
+          <!-- Show the actual disease detection result here -->
+          <div class="detection-result-card">
+            <div class="result-header">
+              <ion-icon 
+                [name]="detectedDisease === 'Unknown' ? 'help-circle' : 'checkmark-circle'" 
+                [class]="detectedDisease === 'Unknown' ? 'unknown-icon' : 'success-icon'">
+              </ion-icon>
+              <h3>{{ detectedDisease || 'Loading...' }}</h3>
+              <span 
+                [class]="detectedDisease === 'Unknown' ? 'low-confidence-badge' : 'confidence-badge'">
+                {{ confidence || 0 }}% confidence
+              </span>
+            </div>
+          </div>
+          
+          <div class="summary-items">
+            <div class="summary-item">
+              <ion-icon name="checkmark-circle" [class]="isDetectionCorrect === 'true' ? 'success-icon' : 'error-icon'"></ion-icon>
+              <span>Symptoms: {{ isDetectionCorrect === 'true' ? 'Confirmed' : 'Not matching' }}</span>
+            </div>
+            <div class="summary-item" *ngIf="detectedLocation">
+              <ion-icon name="location" [class]="locationAccuracyConfirmed === 'true' ? 'success-icon' : 'warning-icon'"></ion-icon>
+              <span>Location: {{ locationAccuracyConfirmed === 'true' ? 'Accurate' : 'Unconfirmed' }}</span>
+            </div>
+            <div class="summary-item" *ngIf="userFeedback">
+              <ion-icon name="chatbubble" class="info-icon"></ion-icon>
+              <span>Additional comments provided</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API Call Failed -->
+      <div *ngIf="apiCallFailed" class="step-content">
+        <div class="error-section">
+          <ion-icon name="alert-circle" class="error-icon"></ion-icon>
+          <h3>Analysis Failed</h3>
+          <p>Unable to analyze the image. Please try taking another photo.</p>
+        </div>
+      </div>
+
+      <!-- Navigation Buttons -->
+      <div class="navigation-buttons">
+        <!-- Previous/Next buttons in a group when both are visible -->
+        <div class="nav-button-group" *ngIf="currentStep > 1 && currentStep < totalSteps">
+          <ion-button 
+            fill="outline" 
+            (click)="previousStep()"
+            [disabled]="isProcessing">
+            <ion-icon slot="start" name="arrow-back"></ion-icon>
+            Previous
+          </ion-button>
+          
+          <ion-button 
+            [disabled]="!canProceedToNextStep() || isProcessing"
+            (click)="nextStep()"
+            class="next-button">
+            Next
+            <ion-icon slot="end" name="arrow-forward"></ion-icon>
+          </ion-button>
+        </div>
+
+        <!-- Previous button only (when on final step) -->
+        <ion-button 
+          *ngIf="currentStep === totalSteps && currentStep > 1" 
+          fill="outline" 
+          (click)="previousStep()"
+          [disabled]="isProcessing">
+          <ion-icon slot="start" name="arrow-back"></ion-icon>
+          Previous
+        </ion-button>
+
+        <!-- Next button only (when on first step) -->
+        <ion-button 
+          *ngIf="currentStep === 1 && currentStep < totalSteps" 
+          [disabled]="!canProceedToNextStep() || isProcessing"
+          (click)="nextStep()"
+          class="next-button">
+          Next
+          <ion-icon slot="end" name="arrow-forward"></ion-icon>
         </ion-button>
         
-        <ion-button class="retake-button" expand="block" fill="outline" (click)="goBack()">
+        <!-- Confirm & Analyze button -->
+        <ion-button 
+          *ngIf="currentStep === totalSteps"
+          class="confirm-button" 
+          expand="block" 
+          (click)="confirm()"
+          [disabled]="isProcessing || isDetectionCorrect === null || apiCallFailed">
+          <ion-icon slot="start" name="checkmark-circle-outline"></ion-icon>
+          <span *ngIf="!isProcessing">CONFIRM & ANALYZE</span>
+          <span *ngIf="isProcessing">ANALYZING...</span>
+        </ion-button>
+        
+        <!-- Retake Photo button -->
+        <ion-button class="retake-button" fill="outline" (click)="goBack()">
           <ion-icon slot="start" name="camera-outline"></ion-icon>
           RETAKE PHOTO
         </ion-button>

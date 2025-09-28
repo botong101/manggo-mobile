@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 // ...existing code...
 import { environment } from '../../../environments/environment';
 import { IonicModule, ToastController, ModalController } from '@ionic/angular';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
@@ -31,13 +31,15 @@ export class HomePage implements OnInit {
   weatherData: any = null;
 
   constructor(
-    private router: Router, 
+    private router: Router,
+    private route: ActivatedRoute,
     private toastCtrl: ToastController,
     private modalCtrl: ModalController,
     private http: HttpClient
   ) {}
 
   ngOnInit() {
+    this.handleRefreshParams();
     this.loadUserData();
     this.updateTimeGreeting();
     this.loadStatistics();
@@ -45,14 +47,73 @@ export class HomePage implements OnInit {
   }
 
   ionViewWillEnter() {
+    // Reset all data to ensure fresh state
+    this.resetPageData();
+    this.handleRefreshParams();
     this.loadUserData();
     this.updateTimeGreeting();
     this.loadStatistics();
+    this.loadWeatherData();
+  }
+
+  private handleRefreshParams() {
+    // Check for refresh query parameter to ensure fresh data loading
+    this.route.queryParams.subscribe(params => {
+      if (params['refresh']) {
+        console.log('Home page refresh triggered with timestamp:', params['refresh']);
+        // Force clear any cached data
+        this.resetPageData();
+        // Remove the refresh parameter from URL after handling
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { refresh: null },
+          queryParamsHandling: 'merge',
+          replaceUrl: true
+        });
+      }
+    });
+  }
+
+  private resetPageData() {
+    // Reset all component data to initial state
+    this.selectedDetectionType = null;
+    this.selectedImageFile = null;
+    
+    // Reset statistics
+    this.totalAnalyses = 0;
+    this.healthyCount = 0;
+    this.diseaseCount = 0;
+    this.recentAnalysesCount = 0;
+    
+    // Reset weather data
+    this.weatherData = null;
+    
+    // Clear any temporary analysis data from localStorage that might persist
+    const tempKeys = ['tempImageData', 'lastAnalysis', 'analysisResult', 'selectedImage', 'predictionData'];
+    tempKeys.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+        console.log(`Cleared temporary data: ${key}`);
+      }
+    });
+    
+    console.log('Home page data reset and temporary cache cleared');
+  }
+
+  // Public method to force refresh from external components
+  public forceRefresh() {
+    console.log('Force refresh triggered');
+    this.resetPageData();
+    this.loadUserData();
+    this.updateTimeGreeting();
+    this.loadStatistics();
+    this.loadWeatherData();
   }
 
   selectDetectionType(type: 'leaf' | 'fruit') {
     this.selectedDetectionType = type;
   }
+  
   clearSelection() {
     this.selectedDetectionType = null;
   }
@@ -156,7 +217,13 @@ export class HomePage implements OnInit {
   }
 
   async importPhoto() {
-    if (!this.selectedDetectionType) return;
+    if (!this.selectedDetectionType) {
+      await this.showToast('Please select detection type (Leaf or Fruit) first.', 'warning');
+      return;
+    }
+    
+    console.log('📷 Importing photo with detection type:', this.selectedDetectionType);
+    
     try {
       const image = await Camera.getPhoto({
         quality: 90,
@@ -165,6 +232,13 @@ export class HomePage implements OnInit {
         source: CameraSource.Photos
       });
       const imageData = 'data:image/jpeg;base64,' + image.base64String;
+      
+      console.log('✅ Image captured, navigating to verify page...');
+      console.log('📊 Navigation state:', { 
+        hasImage: !!imageData, 
+        detectionType: this.selectedDetectionType 
+      });
+      
       this.router.navigate(['/pages/verify'], {
         state: {
           image: imageData,
@@ -172,12 +246,19 @@ export class HomePage implements OnInit {
         }
       });
     } catch (err) {
+      console.error('❌ Photo import error:', err);
       await this.showToast('Photo import cancelled or failed.', 'warning');
     }
   }
 
   async useCamera() {
-    if (!this.selectedDetectionType) return;
+    if (!this.selectedDetectionType) {
+      await this.showToast('Please select detection type (Leaf or Fruit) first.', 'warning');
+      return;
+    }
+    
+    console.log('📸 Using camera with detection type:', this.selectedDetectionType);
+    
     try {
       const image = await Camera.getPhoto({
         quality: 90,
@@ -186,6 +267,13 @@ export class HomePage implements OnInit {
         source: CameraSource.Camera
       });
       const imageData = 'data:image/jpeg;base64,' + image.base64String;
+      
+      console.log('✅ Photo taken, navigating to verify page...');
+      console.log('📊 Navigation state:', { 
+        hasImage: !!imageData, 
+        detectionType: this.selectedDetectionType 
+      });
+      
       this.router.navigate(['/pages/verify'], {
         state: {
           image: imageData,
@@ -193,6 +281,7 @@ export class HomePage implements OnInit {
         }
       });
     } catch (err) {
+      console.error('❌ Camera error:', err);
       await this.showToast('Camera cancelled or failed.', 'warning');
     }
   }

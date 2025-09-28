@@ -19,16 +19,16 @@
     </ion-button>
 
     <!-- Loading state while verification modal is shown -->
-    <div *ngIf="!isVerified" class="verification-pending">
+    <div *ngIf="!isVerified && !mainDisease" class="verification-pending">
       <div class="pending-content">
         <ion-spinner name="crescent"></ion-spinner>
-        <h3>Please verify the detection result</h3>
-        <p>A verification modal should appear shortly...</p>
+        <h3>Loading results...</h3>
+        <p>Processing your analysis...</p>
       </div>
     </div>
 
-    <!-- Results section - only show after verification -->
-    <div class="results-section" *ngIf="isVerified">
+    <!-- Results section - show if verified OR if we have main disease data -->
+    <div class="results-section" *ngIf="isVerified || mainDisease">
       <h2 class="page-title">Analysis Results</h2>
       
       <!-- Image Display -->
@@ -52,8 +52,8 @@
           {{ mainDisease || 'Processing...' }}
           <ion-badge *ngIf="isVerified" color="success" style="margin-left:8px;">Verified</ion-badge>
         </h1>
-        <p class="confidence-text" *ngIf="confidenceLevel">
-          Confidence: {{ confidenceLevel }}
+        <p class="confidence-text">
+          Confidence: {{ formatConfidence(confidenceScore || 0) }} ({{ confidenceLevel || 'Unknown' }})
         </p>
       </div>
 
@@ -74,6 +74,28 @@
             </div>
             <div class="confidence-bar">
               <div class="confidence-fill" [style.width.%]="prob.confidence"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Simple confidence display when detailed predictions not available -->
+      <div class="simple-confidence-card" *ngIf="probabilities.length === 0 && mainDisease">
+        <div class="card-header">
+          <ion-icon name="analytics-outline" class="card-icon"></ion-icon>
+          <h3 class="card-title">Detection Result</h3>
+        </div>
+        <div class="simple-prediction">
+          <div class="prediction-item">
+            <div class="prediction-rank">1</div>
+            <div class="prediction-details">
+              <span class="prediction-name">{{ mainDisease }}</span>
+              <span class="prediction-confidence">
+                {{ formatConfidence(confidenceScore) }}
+              </span>
+            </div>
+            <div class="confidence-bar">
+              <div class="confidence-fill" [style.width.%]="confidenceScore"></div>
             </div>
           </div>
         </div>
