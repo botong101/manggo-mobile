@@ -795,29 +795,104 @@ $shadow-strong: rgba(0, 0, 0, 0.2);
     box-shadow: 0 4px 12px $shadow;
     border-left: 4px solid $green-primary;
 
+    .primary-symptoms {
+      margin-bottom: 16px;
+      
+      h4 {
+        color: $green-primary;
+        margin-bottom: 8px;
+        font-size: 16px;
+        font-weight: 600;
+      }
+    }
+
     .symptoms-list {
       margin: 0;
       padding: 0;
       list-style: none;
 
       li {
-        padding: 8px 0;
+        display: flex;
+        align-items: center;
+        padding: 12px 0;
         border-bottom: 1px solid #f0f0f0;
-        position: relative;
-        padding-left: 24px;
+        gap: 12px;
 
         &:last-child {
           border-bottom: none;
         }
 
-        &::before {
-          content: '•';
-          color: $green-primary;
+        ion-checkbox {
+          --size: 18px;
+          --color: $green-primary;
+          --color-checked: $green-primary;
+          --border-color: $green-primary;
+          --border-color-checked: $green-primary;
+          margin: 0;
+        }
+
+        span {
+          flex: 1;
+          font-size: 14px;
+          line-height: 1.4;
+          color: $text-dark;
+        }
+      }
+    }
+    
+    .more-options-container {
+      border-top: 1px solid #f0f0f0;
+      padding-top: 12px;
+      margin-top: 12px;
+      
+      .more-options-button {
+        --color: $text-light;
+        font-size: 14px;
+        margin: 0;
+        width: 100%;
+        justify-content: space-between;
+        --padding-start: 0;
+        --padding-end: 0;
+        text-transform: none;
+        
+        ion-icon {
+          margin-left: 8px;
+        }
+      }
+      
+      .alternative-symptoms {
+        margin-top: 12px;
+        
+        h4 {
+          color: $text-light;
           font-size: 16px;
-          font-weight: bold;
-          position: absolute;
-          left: 8px;
-          top: 8px;
+          margin-bottom: 4px;
+          font-weight: 600;
+        }
+        
+        .alternative-subtitle {
+          font-size: 12px;
+          color: $text-light;
+          margin-bottom: 8px;
+          font-style: italic;
+        }
+        
+        .symptoms-list.alternative {
+          li {
+            opacity: 0.9;
+            
+            span {
+              font-size: 13px;
+              color: $text-light;
+            }
+            
+            ion-checkbox {
+              --color: $text-light;
+              --color-checked: $green-secondary;
+              --border-color: $text-light;
+              --border-color-checked: $green-secondary;
+            }
+          }
         }
       }
     }
@@ -1002,4 +1077,14 @@ $shadow-strong: rgba(0, 0, 0, 0.2);
       }
     }
   }
+}
+
+.see-more-container {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.see-more-button {
+  --color: var(--ion-color-primary);
+  font-size: 14px;
 }

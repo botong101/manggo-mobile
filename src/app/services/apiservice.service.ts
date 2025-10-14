@@ -236,6 +236,13 @@ export class ApiService {
     userVerification: {
       isDetectionCorrect: boolean;
       userFeedback?: string;
+      selectedSymptoms?: string[];
+      primarySymptoms?: string[];
+      alternativeSymptoms?: string[];
+      detectedDisease?: string;
+      topDiseases?: any[];
+      confidence?: number;
+      symptomsData?: any;
     },
     locationData?: any,
     locationConsentGiven?: boolean
@@ -253,6 +260,33 @@ export class ApiService {
       if (userVerification.userFeedback) {
         formData.append('user_feedback', userVerification.userFeedback);
       }
+      
+      // Add symptoms data if available
+      if (userVerification.selectedSymptoms) {
+        formData.append('selected_symptoms', JSON.stringify(userVerification.selectedSymptoms));
+      }
+      if (userVerification.primarySymptoms) {
+        formData.append('primary_symptoms', JSON.stringify(userVerification.primarySymptoms));
+      }
+      if (userVerification.alternativeSymptoms) {
+        formData.append('alternative_symptoms', JSON.stringify(userVerification.alternativeSymptoms));
+      }
+      if (userVerification.detectedDisease) {
+        formData.append('detected_disease', userVerification.detectedDisease);
+      }
+      if (userVerification.topDiseases) {
+        formData.append('top_diseases', JSON.stringify(userVerification.topDiseases));
+      }
+      if (userVerification.symptomsData) {
+        formData.append('symptoms_data', JSON.stringify(userVerification.symptomsData));
+      }
+      
+      console.log('🔍 Symptoms data being sent:', {
+        selectedSymptoms: userVerification.selectedSymptoms,
+        primarySymptoms: userVerification.primarySymptoms,
+        alternativeSymptoms: userVerification.alternativeSymptoms,
+        detectedDisease: userVerification.detectedDisease
+      });
       
       // Add location data if available - always save location but track accuracy confirmation
       if (locationData) {

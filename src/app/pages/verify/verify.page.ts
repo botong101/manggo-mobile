@@ -8,6 +8,12 @@ import { environment } from '../../../environments/environment';
 import { ApiService } from 'src/app/services/apiservice.service';
 import { ExifLocationService, LocationConsentResult } from 'src/app/services/exif-location.service';
 
+// Local verify component services
+import { VerifySymptomsService, SymptomsData } from './services/verify-symptoms.service';
+import { VerifyDetectionService } from './services/verify-detection.service';
+import { VerifyWorkflowService } from './services/verify-workflow.service';
+import { VerifyUtilsService } from './services/verify-utils.service';
+
 @Component({
   selector: 'app-verify',
   standalone: true, 
@@ -28,19 +34,29 @@ export class VerifyPage implements OnInit {
   detectionResult: any = null;
   
   // Step-by-step workflow
-  currentStep: number = 1;
+  currentStep: 1 | 2 | 3 | 4 = 1;
   totalSteps: number = 4;
   
   // Form fields
-  isDetectionCorrect: string | null = null;
+  isDetectionCorrect: string | null = 'true'; // Default to true - symptoms are correct by default
   locationAccuracyConfirmed: string | null = null; // Changed from locationConsentGiven - this is about confirming accuracy
   userFeedback: string = '';
 
   // Detection result (only shown at final step)
   detectedDisease = '';
   confidence = 0;
-  symptoms: string[] = []; // Symptoms to display instead of disease name
+  symptoms: string[] = []; // Primary symptoms
   
+  // Top 3 diseases from API
+  topDiseases: any[] = [];
+  alternativeSymptoms: string[] = [];
+  selectedSymptoms: boolean[] = [];
+  selectedAlternativeSymptoms: boolean[] = [];
+  
+  // Unified symptoms management
+  allSymptoms: string[] = []; // Combined primary + alternative symptoms
+  allSelectedSymptoms: boolean[] = []; // Single selection array for all symptoms
+  showMoreOptions: boolean = false;
   // Location data
   detectedLocation: any = null;
 
@@ -50,10 +66,65 @@ export class VerifyPage implements OnInit {
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
     private apiService: ApiService,
-    private exifLocationService: ExifLocationService
+    private exifLocationService: ExifLocationService,
+    // Local verify component services
+    private symptomsService: VerifySymptomsService,
+    private detectionService: VerifyDetectionService,
+    private workflowService: VerifyWorkflowService,
+    private utilsService: VerifyUtilsService
   ) {}
+  showMoreSymptoms: boolean = false;
 
+  toggleMoreSymptoms() {
+    this.showMoreSymptoms = !this.showMoreSymptoms;
+  }
+  
+  // Initialize unified symptoms arrays after symptoms and alternative symptoms are loaded
+  private initializeUnifiedSymptoms() {
+    // Combine all symptoms into one array
+    this.allSymptoms = [...this.symptoms, ...this.alternativeSymptoms];
+    
+    // Initialize selection array for all symptoms
+    this.allSelectedSymptoms = new Array(this.allSymptoms.length).fill(false);
+    
+    console.log('🔄 Unified symptoms initialized:', {
+      primaryCount: this.symptoms.length,
+      alternativeCount: this.alternativeSymptoms.length,
+      totalCount: this.allSymptoms.length
+    });
+  }
+
+  toggleMoreOptions() {
+    this.showMoreOptions = !this.showMoreOptions;
+  }
+
+  // Handle symptom checkbox changes
+  onSymptomChange(index: number, event: any) {
+    this.selectedSymptoms[index] = event.detail.checked;
+    
+    // If user starts checking symptoms after setting detection to incorrect, reset to correct
+    if (event.detail.checked && this.isDetectionCorrect === 'false') {
+      this.isDetectionCorrect = 'true';
+      console.log('Detection reset to correct because user started checking symptoms');
+    }
+  }
+
+  // Handle alternative symptom checkbox changes
+  onAlternativeSymptomChange(index: number, event: any) {
+    // Alternative symptoms start after primary symptoms in the unified array
+    const unifiedIndex = this.symptoms.length + index;
+    this.allSelectedSymptoms[unifiedIndex] = event.detail.checked;
+    
+    // If user starts checking symptoms after setting detection to incorrect, reset to correct
+    if (event.detail.checked && this.isDetectionCorrect === 'false') {
+      this.isDetectionCorrect = 'true';
+      console.log('Detection reset to correct because user started checking alternative symptoms');
+    }
+  }
   ngOnInit() {
+    // Initialize unified symptoms selection array - will be properly sized after symptoms are loaded
+    this.allSelectedSymptoms = [];
+    
     console.log('🔍 VerifyPage ngOnInit - checking navigation state...');
     const nav = window.history.state;
     console.log('📊 Navigation state received:', nav);
@@ -106,6 +177,49 @@ export class VerifyPage implements OnInit {
         (this.detectionType as 'fruit' | 'leaf') || 'leaf'
       );
 
+      // Extract top 3 diseases if available
+      if (this.detectionResult.data && this.detectionResult.data.predictions) {
+        this.topDiseases = this.detectionResult.data.predictions.slice(0, 3);
+        console.log('🔍 Extracted top diseases from data.predictions:', this.topDiseases);
+      } else if (this.detectionResult.predictions) {
+        this.topDiseases = this.detectionResult.predictions.slice(0, 3);
+        console.log('🔍 Extracted top diseases from predictions:', this.topDiseases);
+      } else {
+        // If no predictions array, create one from the single prediction
+        console.log('🔍 No predictions array found. Creating from single prediction.');
+        this.topDiseases = [];
+        
+        // Try to get the primary prediction
+        const primaryDisease = this.detectionResult.predicted_disease || 
+                              this.detectionResult.disease || 
+                              (this.detectionResult.data && this.detectionResult.data.primary_prediction && this.detectionResult.data.primary_prediction.disease);
+                              
+        if (primaryDisease) {
+          this.topDiseases.push({
+            disease: primaryDisease,
+            predicted_disease: primaryDisease,
+            confidence: this.detectionResult.confidence || 
+                       (this.detectionResult.data && this.detectionResult.data.primary_prediction && this.detectionResult.data.primary_prediction.confidence_score) || 0
+          });
+          
+          // Add some common alternative diseases for demonstration
+          // You can modify this list based on your domain knowledge
+          const commonAlternatives = ['Anthracnose', 'Bacterial Canker', 'Powdery Mildew', 'Die Back', 'Sooty Mould'];
+          const filteredAlternatives = commonAlternatives.filter(disease => disease !== primaryDisease);
+          
+          // Add up to 2 alternatives with lower confidence
+          filteredAlternatives.slice(0, 2).forEach((disease, index) => {
+            this.topDiseases.push({
+              disease: disease,
+              predicted_disease: disease,
+              confidence: Math.max(10, (this.confidence || 50) - 20 - (index * 10))
+            });
+          });
+        }
+        
+        console.log('🔍 Created top diseases from single prediction:', this.topDiseases);
+      }
+
       // Extract the detection results with confidence threshold
       // Handle both direct response and nested response formats
       let rawDisease = '';
@@ -152,6 +266,12 @@ export class VerifyPage implements OnInit {
       
       // Extract symptoms for the detected disease (or generic symptoms for Unknown)
       this.symptoms = this.getDiseaseSymptoms(this.detectedDisease);
+      
+      // Extract alternative symptoms from top 2 and 3 diseases
+      this.extractAlternativeSymptoms();
+      
+      // Initialize unified symptoms arrays
+      this.initializeUnifiedSymptoms();
       
       this.apiCallFailed = false; // API call succeeded
       
@@ -435,7 +555,20 @@ export class VerifyPage implements OnInit {
   canProceedToNextStep(): boolean {
     switch (this.currentStep) {
       case 1: // Symptoms confirmation
-        return this.isDetectionCorrect !== null;
+        // Check if detection is confirmed AND at least one symptom is checked (if detection is correct)
+        if (this.isDetectionCorrect === null) {
+          return false; // Must confirm detection first
+        }
+        
+        if (this.isDetectionCorrect === 'false') {
+          return true; // If symptoms don't match, can proceed without checking symptoms
+        }
+        
+        // If detection is correct, must have at least one symptom checked
+        const hasPrimarySymptoms = this.selectedSymptoms.some(selected => selected);
+        const hasAlternativeSymptoms = this.selectedAlternativeSymptoms.some(selected => selected);
+        return hasPrimarySymptoms || hasAlternativeSymptoms;
+        
       case 2: // Location confirmation
         return this.locationAccuracyConfirmed !== null;
       case 3: // Additional comments
@@ -463,68 +596,29 @@ export class VerifyPage implements OnInit {
   }
 
   // Get symptoms for the detected disease
-  getDiseaseSymptoms(disease: string): string[] {
-    const symptomsMap: { [key: string]: string[] } = {
-      'Anthracnose': [
-        'Dark, sunken spots on fruits',
-        'Black or brown lesions on leaves',
-        'Spots may have pink or orange spore masses in humid conditions',
-        'Premature fruit drop'
-      ],
-      'Bacterial Canker': [
-        'Are the ends of branches drying up and dying?',
-        'Is the drying moving from the tip towards the main branch?',
-        'Does the plant look stressed or weak?'
-      ],
-      'Cutting Weevil': [
-        'Small holes in young shoots and leaves',
-        'Wilting of terminal shoots',
-        'Presence of small weevil insects',
-        'Damage typically at growing tips'
-      ],
-      'Die Back': [
-        'Progressive death of branches from tips downward',
-        'Browning and drying of leaves',
-        'Bark cracking or splitting',
-        'Reduced fruit production'
-      ],
-      'Gall Midge': [
-        'Small bumps or galls on leaves',
-        'Distorted leaf growth',
-        'Presence of tiny flies around the plant',
-        'Stunted shoot development'
-      ],
-      'Healthy': [
-        'Vibrant green leaves',
-        'Normal fruit development',
-        'No visible spots or lesions',
-        'Strong, healthy growth'
-      ],
-      'Powdery Mildew': [
-        'White, powdery coating on leaves',
-        'Yellowing of affected leaves',
-        'Distorted or stunted growth',
-        'Premature leaf drop'
-      ],
-      'Sooty Mould': [
-        'Black, sooty coating on leaves and fruits',
-        'Reduced photosynthesis',
-        'Often associated with insect infestations',
-        'Sticky honeydew substance present'
-      ]
-    };
+  
 
-    return symptomsMap[disease] || [
-      'Look for any unusual discoloration or spots',
-      'Check for changes in texture or firmness', 
-      'Notice any abnormal growth patterns',
-      'Consider environmental factors affecting the plant'
-    ];
+
+  getDiseaseSymptoms(disease: string): string[] {
+    // Use detection service for disease symptoms mapping
+    return this.detectionService.getDiseaseSymptoms(disease);
   }
 
   onDetectionChange(event: any) {
     console.log('Detection verification changed:', event.detail.value);
     this.isDetectionCorrect = event.detail.value;
+  }
+
+  // Method to set detection as incorrect when user clicks the "No" button
+  setDetectionIncorrect() {
+    console.log('User selected: symptoms do not match');
+    this.isDetectionCorrect = 'false';
+    
+    // Auto uncheck all selected symptoms when detection is set to incorrect
+    this.selectedSymptoms = new Array(this.symptoms.length).fill(false);
+    this.selectedAlternativeSymptoms = new Array(this.alternativeSymptoms.length).fill(false);
+    
+    console.log('All symptoms unchecked due to incorrect detection');
   }
 
   onLocationChange(event: any) {
@@ -570,7 +664,7 @@ export class VerifyPage implements OnInit {
       await loading.present();
       
       // Now save the analysis with user verification and location data
-      console.log('� Saving analysis with user verification...');
+      console.log('💾 Saving analysis with user verification...');
       
       const base64 = this.imageData.replace(/^data:image\/[a-z]+;base64,/, '');
       const byteCharacters = atob(base64);
@@ -581,14 +675,28 @@ export class VerifyPage implements OnInit {
       const byteArray = new Uint8Array(byteNumbers);
       const file = new File([byteArray], 'image.jpg', { type: 'image/jpeg' });
       
+      // Get all selected symptoms for the API
+      const symptomsData = this.prepareSymptomsDataForAPI();
+      
+      console.log('📋 Symptoms data for API:', symptomsData);
+      
       // Save with verification data to admin/database
       const finalResult = await this.apiService.savePredictionWithVerification(
         file,
         (this.detectionType as 'fruit' | 'leaf') || 'leaf',
         {
           isDetectionCorrect: this.isDetectionCorrect === 'true',
-          userFeedback: this.userFeedback || undefined
-        },
+          userFeedback: this.userFeedback || undefined,
+          selectedSymptoms: symptomsData.allSelectedSymptoms, // All selected symptoms combined
+          primarySymptoms: symptomsData.selectedPrimarySymptoms, // Primary disease symptoms only
+          alternativeSymptoms: symptomsData.selectedAlternativeSymptoms, // Alternative symptoms only
+          detectedDisease: this.detectedDisease,
+          topDiseases: this.topDiseases, // Include all top diseases for reference
+          confidence: this.confidence,
+          
+          // Include comprehensive symptoms data
+          symptomsData: symptomsData
+        } as any, // Use 'as any' temporarily to avoid type errors
         locationConsentResult.locationData, // Always pass location data if available
         locationConsentResult.locationAccuracyConfirmed // Pass user's accuracy confirmation
       );
@@ -609,11 +717,16 @@ export class VerifyPage implements OnInit {
           userVerification: {
             isDetectionCorrect: this.isDetectionCorrect === 'true',
             userFeedback: this.userFeedback,
-            locationAccuracyConfirmed: this.locationAccuracyConfirmed === 'true'
+            locationAccuracyConfirmed: this.locationAccuracyConfirmed === 'true',
+            selectedSymptoms: symptomsData.allSelectedSymptoms,
+            primarySymptoms: symptomsData.selectedPrimarySymptoms,
+            alternativeSymptoms: symptomsData.selectedAlternativeSymptoms,
+            symptomsData: symptomsData
           },
           locationConsentGiven: locationConsentResult.consentGiven,
           detectedDisease: this.detectedDisease,
-          confidence: this.confidence
+          confidence: this.confidence,
+          topDiseases: this.topDiseases
         } 
       });
       
@@ -653,5 +766,47 @@ export class VerifyPage implements OnInit {
       ]
     });
     await toast.present();
+  }
+
+  // Helper method to get selected symptoms
+  getSelectedSymptoms(): string[] {
+    return this.symptoms.filter((_, i) => this.selectedSymptoms[i]);
+  }
+
+  // Extract symptoms from top 2 and 3 diseases for "more options"
+  // Extract symptoms from top 2 and 3 diseases for "more options" using service
+  private extractAlternativeSymptoms() {
+    const result = this.symptomsService.extractAlternativeSymptoms(
+      this.topDiseases,
+      (disease: string) => this.detectionService.getDiseaseSymptoms(disease)
+    );
+    
+    this.alternativeSymptoms = result.symptoms;
+    this.selectedAlternativeSymptoms = result.selectionArray;
+  }
+
+  // Helper method to get all selected symptoms (primary + alternative) using service
+  getAllSelectedSymptoms(): string[] {
+    return this.symptomsService.getAllSelectedSymptoms(
+      this.symptoms,
+      this.selectedSymptoms,
+      this.alternativeSymptoms,
+      this.selectedAlternativeSymptoms
+    );
+  }
+
+  // Prepare symptoms data for API backend using service
+  prepareSymptomsDataForAPI(): SymptomsData {
+    return this.symptomsService.prepareSymptomsDataForAPI(
+      this.detectedDisease,
+      this.confidence,
+      this.symptoms,
+      this.selectedSymptoms,
+      this.alternativeSymptoms,
+      this.selectedAlternativeSymptoms,
+      this.topDiseases,
+      this.isDetectionCorrect,
+      this.userFeedback
+    );
   }
 }
