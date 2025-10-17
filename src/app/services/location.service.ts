@@ -57,7 +57,6 @@ export class LocationService {
       const permissions = await Geolocation.checkPermissions();
       
       if (permissions.location !== 'granted') {
-        console.log('Location permission not granted');
         return null;
       }
 

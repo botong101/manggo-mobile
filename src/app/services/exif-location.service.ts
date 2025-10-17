@@ -63,17 +63,12 @@ export class ExifLocationService {
             const lng = EXIF.getTag(file as any, 'GPSLongitude');
             const lngRef = EXIF.getTag(file as any, 'GPSLongitudeRef');
             const timestamp = EXIF.getTag(file as any, 'DateTime');
-            
-            console.log('🌍 EXIF GPS Data:', {
-              lat, latRef, lng, lngRef, timestamp
-            });
 
             if (lat && lng && latRef && lngRef && Array.isArray(lat) && Array.isArray(lng)) {
               // Convert GPS coordinates from DMS to decimal degrees
               const latitude = this.convertDMSToDD(lat, latRef);
               const longitude = this.convertDMSToDD(lng, lngRef);
               
-              console.log('📍 Converted GPS coordinates:', { latitude, longitude });
 
               const locationData: ExifLocationData = {
                 latitude,
@@ -93,7 +88,6 @@ export class ExifLocationService {
                   resolve(locationData);
                 });
             } else {
-              console.log('❌ No GPS data found in EXIF');
               resolve({
                 latitude: 0,
                 longitude: 0,
@@ -166,21 +160,17 @@ export class ExifLocationService {
    */
   async requestLocationConsentWithExif(imageFile: File): Promise<LocationConsentResult> {
     try {
-      console.log('🔍 Starting EXIF location extraction...');
       
       // TEMPORARY: Skip EXIF extraction due to library issues
       // TODO: Fix EXIF library issue and re-enable
-      console.log('📍 EXIF extraction temporarily disabled due to library issues');
       
       /* COMMENTED OUT UNTIL EXIF LIBRARY ISSUE IS FIXED
       // First extract EXIF location data
       const exifLocation = await this.extractExifLocation(imageFile);
       
-      console.log('🔍 EXIF Location Result:', exifLocation);
 
       // If no GPS data in EXIF, return early
       if (!exifLocation || !exifLocation.hasGps) {
-        console.log('📍 No GPS data found in image EXIF');
         // Don't show toast for this - it's normal for many images
         return {
           consentGiven: false,
@@ -237,7 +227,6 @@ export class ExifLocationService {
             text: 'Don\'t Share',
             role: 'cancel',
             handler: () => {
-              console.log('🚫 User declined to share location');
               resolve(false);
             }
           },
@@ -245,7 +234,6 @@ export class ExifLocationService {
             text: 'Share Location',
             cssClass: 'primary',
             handler: () => {
-              console.log('✅ User consented to share location');
               resolve(true);
             }
           }

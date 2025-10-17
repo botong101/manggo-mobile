@@ -86,12 +86,6 @@ export class VerifyPage implements OnInit {
     
     // Initialize selection array for all symptoms
     this.allSelectedSymptoms = new Array(this.allSymptoms.length).fill(false);
-    
-    console.log('🔄 Unified symptoms initialized:', {
-      primaryCount: this.symptoms.length,
-      alternativeCount: this.alternativeSymptoms.length,
-      totalCount: this.allSymptoms.length
-    });
   }
 
   toggleMoreOptions() {
@@ -105,7 +99,6 @@ export class VerifyPage implements OnInit {
     // If user starts checking symptoms after setting detection to incorrect, reset to correct
     if (event.detail.checked && this.isDetectionCorrect === 'false') {
       this.isDetectionCorrect = 'true';
-      console.log('Detection reset to correct because user started checking symptoms');
     }
   }
 
@@ -118,31 +111,22 @@ export class VerifyPage implements OnInit {
     // If user starts checking symptoms after setting detection to incorrect, reset to correct
     if (event.detail.checked && this.isDetectionCorrect === 'false') {
       this.isDetectionCorrect = 'true';
-      console.log('Detection reset to correct because user started checking alternative symptoms');
     }
   }
   ngOnInit() {
     // Initialize unified symptoms selection array - will be properly sized after symptoms are loaded
     this.allSelectedSymptoms = [];
     
-    console.log('🔍 VerifyPage ngOnInit - checking navigation state...');
     const nav = window.history.state;
-    console.log('📊 Navigation state received:', nav);
     
     this.imageData = nav.image || null;
     this.detectionType = nav.detectionType || null;
     
-    console.log('📋 Extracted data:', { 
-      hasImage: !!this.imageData, 
-      detectionType: this.detectionType 
-    });
     
     if (!this.imageData) {
-      console.log('❌ No image data found in navigation state');
       this.showToast('No image provided. Please take or select a photo.', 'warning');
       this.goBack();
     } else {
-      console.log('✅ Image data found, proceeding with analysis...');
       // Get actual AI detection result from API
       this.getDetectionResult();
       // Try to detect location from image
@@ -171,7 +155,6 @@ export class VerifyPage implements OnInit {
       const file = new File([byteArray], 'image.jpg', { type: 'image/jpeg' });
 
       // Single API call for prediction preview (no database save)
-      console.log('🔍 Making preview prediction call (no database save)...');
       this.detectionResult = await this.apiService.previewPrediction(
         file, 
         (this.detectionType as 'fruit' | 'leaf') || 'leaf'
@@ -180,13 +163,10 @@ export class VerifyPage implements OnInit {
       // Extract top 3 diseases if available
       if (this.detectionResult.data && this.detectionResult.data.predictions) {
         this.topDiseases = this.detectionResult.data.predictions.slice(0, 3);
-        console.log('🔍 Extracted top diseases from data.predictions:', this.topDiseases);
       } else if (this.detectionResult.predictions) {
         this.topDiseases = this.detectionResult.predictions.slice(0, 3);
-        console.log('🔍 Extracted top diseases from predictions:', this.topDiseases);
       } else {
         // If no predictions array, create one from the single prediction
-        console.log('🔍 No predictions array found. Creating from single prediction.');
         this.topDiseases = [];
         
         // Try to get the primary prediction
@@ -217,7 +197,6 @@ export class VerifyPage implements OnInit {
           });
         }
         
-        console.log('🔍 Created top diseases from single prediction:', this.topDiseases);
       }
 
       // Extract the detection results with confidence threshold
@@ -230,7 +209,6 @@ export class VerifyPage implements OnInit {
         const prediction = this.detectionResult.data.primary_prediction;
         rawDisease = prediction.disease || '';
         confidenceValue = prediction.confidence_score || 0;
-        console.log('📊 Using nested API response format:', { disease: rawDisease, confidence: confidenceValue });
       } else {
         // Direct API response format (fallback)
         rawDisease = this.detectionResult.predicted_disease || this.detectionResult.disease || '';
@@ -250,7 +228,6 @@ export class VerifyPage implements OnInit {
         } else {
           confidenceValue = 0;
         }
-        console.log('📊 Using direct API response format:', { disease: rawDisease, confidence: confidenceValue });
       }
       
       this.confidence = Math.round(confidenceValue);
@@ -258,10 +235,8 @@ export class VerifyPage implements OnInit {
       // Apply confidence threshold - use "Unknown" if below threshold
       if (this.confidence < this.CONFIDENCE_THRESHOLD) {
         this.detectedDisease = 'Unknown';
-        console.log(`🤔 Low confidence (${this.confidence}%) - showing as Unknown (threshold: ${this.CONFIDENCE_THRESHOLD}%)`);
       } else {
         this.detectedDisease = rawDisease || 'Unknown';
-        console.log(`✅ High confidence (${this.confidence}%) - showing: ${this.detectedDisease} (threshold: ${this.CONFIDENCE_THRESHOLD}%)`);
       }
       
       // Extract symptoms for the detected disease (or generic symptoms for Unknown)
@@ -275,13 +250,6 @@ export class VerifyPage implements OnInit {
       
       this.apiCallFailed = false; // API call succeeded
       
-      console.log('✅ Initial detection result:', { 
-        disease: this.detectedDisease, 
-        confidence: this.confidence,
-        rawDisease: rawDisease,
-        threshold: this.CONFIDENCE_THRESHOLD,
-        result: this.detectionResult 
-      });
       
     } catch (error) {
       console.error('❌ Detection failed:', error);
@@ -304,11 +272,9 @@ export class VerifyPage implements OnInit {
       if (!this.imageData) return;
       
       // Since EXIF extraction is temporarily disabled, try device location
-      console.log('📍 Starting location detection...');
       
       // Check if geolocation is supported
       if (!navigator.geolocation) {
-        console.log('📍 Geolocation not supported by this browser');
         return;
       }
 
@@ -316,15 +282,12 @@ export class VerifyPage implements OnInit {
       if ('permissions' in navigator) {
         try {
           const permission = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-          console.log('📍 Geolocation permission status:', permission.state);
           
           if (permission.state === 'denied') {
-            console.log('📍 Location permission is denied');
             this.showToast('Location access is denied. You can still use the app without location.', 'warning');
             return;
           }
         } catch (permError) {
-          console.log('📍 Permission query failed:', permError);
         }
       }
       
@@ -332,11 +295,9 @@ export class VerifyPage implements OnInit {
         const deviceLocation = await this.getCurrentDeviceLocation();
         if (deviceLocation) {
           this.detectedLocation = deviceLocation;
-          console.log('📍 Using device location:', this.detectedLocation);
           this.showToast(`Location detected: ${deviceLocation.address.split(',')[0]}`, 'success');
         }
       } catch (error) {
-        console.log('📍 Device location failed:', error);
         
         if (error instanceof GeolocationPositionError) {
           let message = '';
@@ -353,40 +314,34 @@ export class VerifyPage implements OnInit {
             default:
               message = 'Unable to get location. Continuing without location data.';
           }
-          console.log('📍 ' + message);
         }
       }
       
       // TODO: Re-enable EXIF extraction when library is fixed
       
     } catch (error) {
-      console.error('📍 Location detection failed:', error);
     }
   }
 
   private async detectLocation() {
     try {
       if (!this.imageData) return;
-      
       // Since EXIF extraction is temporarily disabled, try device location
-      console.log('📍 EXIF extraction is disabled, trying device location...');
-      
       try {
         const deviceLocation = await this.getCurrentDeviceLocation();
         if (deviceLocation) {
           this.detectedLocation = deviceLocation;
-          console.log('📍 Using device location:', this.detectedLocation);
         }
       } catch (error) {
-        console.log('📍 Device location failed:', error);
+        console.log('Device location failed:', error);
         // Show user-friendly message for location permission
         if (error instanceof GeolocationPositionError) {
           if (error.code === 1) {
-            console.log('📍 Location permission denied by user');
+            console.log('Location permission denied by user');
           } else if (error.code === 2) {
-            console.log('📍 Location unavailable');
+            console.log('Location unavailable');
           } else if (error.code === 3) {
-            console.log('📍 Location timeout');
+            console.log('Location timeout');
           }
         }
       }
@@ -411,12 +366,12 @@ export class VerifyPage implements OnInit {
           address: locationResult.locationData.address,
           source: 'image exif'
         };
-        console.log('📍 Location detected from image EXIF:', this.detectedLocation);
+        console.log('Location detected from image EXIF:', this.detectedLocation);
       }
       */
       
     } catch (error) {
-      console.error('📍 Location detection failed:', error);
+      console.error('Location detection failed:', error);
     }
   }
 
@@ -426,12 +381,9 @@ export class VerifyPage implements OnInit {
         reject('Geolocation not supported');
         return;
       }
-
-      console.log('📍 Requesting device location permission...');
       
       navigator.geolocation.getCurrentPosition(
         async (position) => {
-          console.log('📍 Device location obtained:', position.coords);
           
           // Get actual address from coordinates
           const address = await this.reverseGeocode(position.coords.latitude, position.coords.longitude);
@@ -445,7 +397,6 @@ export class VerifyPage implements OnInit {
           });
         },
         (error) => {
-          console.error('📍 Device location error:', error);
           reject(error);
         },
         { 
@@ -462,8 +413,6 @@ export class VerifyPage implements OnInit {
    */
   private async reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
-      console.log(`📍 Reverse geocoding: ${lat}, ${lng}`);
-      
       // Using OpenStreetMap Nominatim API (free, no API key required)
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
@@ -481,8 +430,6 @@ export class VerifyPage implements OnInit {
       const data = await response.json();
       
       if (data && data.display_name) {
-        console.log('📍 Address found:', data.display_name);
-        
         // Try to format a more readable address
         const address = data.address;
         if (address) {
@@ -511,7 +458,6 @@ export class VerifyPage implements OnInit {
       throw new Error('No address found');
       
     } catch (error) {
-      console.error('📍 Reverse geocoding failed:', error);
       
       // Fallback: try alternative service or return coordinates
       try {
@@ -527,7 +473,7 @@ export class VerifyPage implements OnInit {
           }
         }
       } catch (fallbackError) {
-        console.error('📍 Fallback geocoding also failed:', fallbackError);
+        console.error('Fallback geocoding also failed:', fallbackError);
       }
       
       // Final fallback: return formatted coordinates
@@ -605,24 +551,19 @@ export class VerifyPage implements OnInit {
   }
 
   onDetectionChange(event: any) {
-    console.log('Detection verification changed:', event.detail.value);
     this.isDetectionCorrect = event.detail.value;
   }
 
   // Method to set detection as incorrect when user clicks the "No" button
   setDetectionIncorrect() {
-    console.log('User selected: symptoms do not match');
     this.isDetectionCorrect = 'false';
     
     // Auto uncheck all selected symptoms when detection is set to incorrect
     this.selectedSymptoms = new Array(this.symptoms.length).fill(false);
     this.selectedAlternativeSymptoms = new Array(this.alternativeSymptoms.length).fill(false);
-    
-    console.log('All symptoms unchecked due to incorrect detection');
   }
 
   onLocationChange(event: any) {
-    console.log('Location accuracy confirmation changed:', event.detail.value);
     this.locationAccuracyConfirmed = event.detail.value;
   }
 
@@ -646,7 +587,6 @@ export class VerifyPage implements OnInit {
     let loading: any = null;
     
     try {
-      console.log('🔍 Saving verification data (no additional API call needed)...');
       
       // Prepare location consent data - location consent was already given during registration
       // User is only confirming the accuracy of the detected location
@@ -664,7 +604,6 @@ export class VerifyPage implements OnInit {
       await loading.present();
       
       // Now save the analysis with user verification and location data
-      console.log('💾 Saving analysis with user verification...');
       
       const base64 = this.imageData.replace(/^data:image\/[a-z]+;base64,/, '');
       const byteCharacters = atob(base64);
@@ -678,7 +617,6 @@ export class VerifyPage implements OnInit {
       // Get all selected symptoms for the API
       const symptomsData = this.prepareSymptomsDataForAPI();
       
-      console.log('📋 Symptoms data for API:', symptomsData);
       
       // Save with verification data to admin/database
       const finalResult = await this.apiService.savePredictionWithVerification(
@@ -707,7 +645,6 @@ export class VerifyPage implements OnInit {
       }
       this.isProcessing = false;
       
-      console.log('✅ Verification completed:', finalResult);
       
       // Navigate to results with verification data
       this.router.navigate(['/pages/results'], { 
@@ -735,7 +672,7 @@ export class VerifyPage implements OnInit {
         await loading.dismiss();
       }
       this.isProcessing = false;
-      console.error('❌ Verification saving error:', error);
+      console.error('Verification saving error:', error);
       
       let errorMessage = 'Failed to save verification. Please try again.';
       if (error instanceof Error) {

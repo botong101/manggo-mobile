@@ -103,19 +103,6 @@ export class ResultsPage implements OnInit {
     const detectedDisease = navState?.detectedDisease;
     const confidence = navState?.confidence;
     
-    console.log('🔍 Results page initialized with:', {
-      hasResult: !!this.result,
-      hasImage: !!this.image,
-      hasImageFile: !!this.imageFile,
-      detectedDisease: detectedDisease,
-      detectedDiseaseType: typeof detectedDisease,
-      detectedDiseaseValid: !!detectedDisease,
-      confidence: confidence,
-      confidenceType: typeof confidence,
-      confidenceValid: confidence !== undefined && confidence !== null,
-      fullNavState: navState,
-      resultData: this.result
-    });
     
     if (!this.image) {
       this.showToast('No image found. Please analyze a photo first.');
@@ -125,11 +112,9 @@ export class ResultsPage implements OnInit {
     
     // Prioritize processing full result data (which contains top_3_predictions)
     if (this.result && this.result.data && this.result.data.top_3_predictions) {
-      console.log('✅ Processing full API result with top_3_predictions');
       this.processResults();
     } else if (detectedDisease && confidence !== undefined && confidence !== null) {
       // Fallback to using simple pre-processed data
-      console.log('⚠️ Using simplified pre-processed detection data (no top_3_predictions)');
       this.mainDisease = detectedDisease;
       this.confidenceScore = confidence;
       this.confidenceLevel = this.getConfidenceLevel(confidence);
@@ -137,19 +122,12 @@ export class ResultsPage implements OnInit {
       this.treatment = this.getTreatmentInfo(this.mainDisease);
       this.isVerified = true; // Show results immediately since user already verified
       
-      console.log('✅ Using pre-processed detection data:', {
-        mainDisease: this.mainDisease,
-        confidenceScore: this.confidenceScore,
-        confidenceLevel: this.confidenceLevel,
-        isVerified: this.isVerified
-      });
+      
     } else if (this.result) {
       // Last resort - try to process any available result
-      console.log('⚠️ Processing any available result data');
       this.processResults();
     } else {
       // No data available at all - but still show the page and let user know
-      console.log('❌ No detection data available');
       this.mainDisease = 'No Detection Data';
       this.confidenceScore = 0;
       this.confidenceLevel = 'Unknown';
@@ -163,15 +141,12 @@ export class ResultsPage implements OnInit {
     // Failsafe: Always set verified after 3 seconds to prevent infinite loading
     setTimeout(() => {
       if (!this.isVerified) {
-        console.log('⏰ Timeout: Setting isVerified = true to prevent infinite loading');
         this.isVerified = true;
       }
     }, 3000);
   }
 
   processResults() {
-    console.log('Processing results:', this.result);
-    
     if (!this.result.success) {
       this.showToast('Prediction failed: ' + (this.result.error || 'Unknown error'));
       return;
@@ -189,10 +164,8 @@ export class ResultsPage implements OnInit {
       // Display "Unknown" if confidence is below threshold, otherwise show actual disease
       if (this.confidenceScore < this.UNKNOWN_CONFIDENCE_THRESHOLD) {
         this.mainDisease = 'Unknown';
-        console.log(`🔍 Low confidence (${this.confidenceScore}%) - displaying as Unknown, actual: ${this.actualDisease}`);
       } else {
         this.mainDisease = this.actualDisease;
-        console.log(`✅ High confidence (${this.confidenceScore}%) - displaying actual disease: ${this.mainDisease}`);
       }
       
       // Process top 3 predictions
@@ -206,26 +179,17 @@ export class ResultsPage implements OnInit {
           rank: pred.rank
         }));
         
-        console.log('🎯 Loaded top 3 predictions:', {
-          count: this.probabilities.length,
-          predictions: this.probabilities.map(p => `${p.class}: ${p.confidence}% (actual: ${p.actualClass})`)
-        });
+        
       } else {
-        console.log('⚠️ No top_3_predictions found in API response');
         this.probabilities = [];
       }
       
       this.confidenceLevel = predictionData.prediction_summary.confidence_level;
       this.diseaseInfo = this.getDiseaseInfo(this.mainDisease);
       
-      console.log('Extracted data:', {
-        mainDisease: this.mainDisease,
-        confidenceScore: this.confidenceScore,
-        savedImageId: this.savedImageId,
-        confidenceLevel: this.confidenceLevel
-      });
       
-      console.log('Successfully processed results');
+      
+      
       
       // Set as verified since we removed the modal
       this.isVerified = true;

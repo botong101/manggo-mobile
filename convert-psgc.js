@@ -39,4 +39,3 @@ for (const row of rows) {
 // Save JSON
 fs.writeFileSync("ph-address.json", JSON.stringify(hierarchy, null, 2), "utf-8");
 
-console.log("✅ Conversion complete! File saved as ph-address.json");

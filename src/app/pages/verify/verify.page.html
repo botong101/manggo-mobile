@@ -150,7 +150,7 @@
           
           <div class="location-info-card">
             <div class="location-details">
-              <h4>📍 Detected Location</h4>
+              <h4>Detected Location</h4>
               <div class="detected-location" *ngIf="detectedLocation">
                 <p class="location-address">{{ detectedLocation.address || 'Loading address...' }}</p>
                 <p class="location-coordinates">
@@ -159,7 +159,7 @@
                 <p class="location-source">Source: {{ detectedLocation.source | titlecase }}</p>
               </div>
               <div class="no-location" *ngIf="!detectedLocation">
-                <p class="location-address">📍 No location data found in image</p>
+                <p class="location-address">No location data found in image</p>
                 <p class="location-note">Your device location will be used if available</p>
               </div>
             </div>
@@ -170,7 +170,7 @@
               <ion-item class="radio-item" button>
                 <ion-radio slot="start" value="true"></ion-radio>
                 <ion-label>
-                  <h4>✅ Yes, this location is accurate</h4>
+                  <h4>Yes, this location is accurate</h4>
                   <p>The detected location correctly represents where this photo was taken</p>
                 </ion-label>
               </ion-item>
@@ -178,7 +178,7 @@
               <ion-item class="radio-item" button>
                 <ion-radio slot="start" value="false"></ion-radio>
                 <ion-label>
-                  <h4>❌ No, this location is not accurate</h4>
+                  <h4>No, this location is not accurate</h4>
                   <p>The location data will still be saved but marked as unconfirmed</p>
                 </ion-label>
               </ion-item>

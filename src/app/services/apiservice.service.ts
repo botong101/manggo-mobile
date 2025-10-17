@@ -57,14 +57,12 @@ export class ApiService {
   }
 
   async extractLocationFromImageWithFallback(file: File): Promise<LocationData | null> {
-    console.log('Starting location extraction for:', file.name);
     
     let location: LocationData | null = null;
 
     try {
       location = await this.extractLocationFromEXIF(file);
       if (location) {
-        console.log('EXIF location extracted successfully:', location);
         return location;
       }
     } catch (error) {
@@ -72,7 +70,6 @@ export class ApiService {
     }
 
     try {
-      console.log('Attempting GPS fallback...');
       const gpsLocation = await this.locationService.getCurrentLocation();
       if (gpsLocation) {
         location = {
@@ -81,14 +78,12 @@ export class ApiService {
           accuracy: gpsLocation.accuracy,
           source: 'gps'
         };
-        console.log('GPS fallback location obtained:', location);
         return location;
       }
     } catch (gpsError) {
       console.warn('GPS fallback also failed:', gpsError);
     }
 
-    console.log('No location could be extracted from EXIF or GPS');
     return null;
   }
 
@@ -124,10 +119,8 @@ export class ApiService {
                 source: 'exif'
               };
               
-              console.log('EXIF location extracted:', location);
               resolve(location);
             } else {
-              console.log('No GPS data found in EXIF');
               resolve(null);
             }
           } catch (error) {
@@ -148,8 +141,6 @@ export class ApiService {
     exifLocationData?: any,
     locationConsentGiven?: boolean
   ): Promise<any> {
-    console.log('Starting prediction with EXIF location extraction...');
-    
     try {
       const formData = new FormData();
       formData.append('image', file);
@@ -164,9 +155,7 @@ export class ApiService {
         if (exifLocationData.address) {
           formData.append('location_address', exifLocationData.address);
         }
-        console.log('📍 EXIF location data added to prediction request:', exifLocationData);
       } else {
-        console.log('📍 No EXIF location data or consent not given');
         formData.append('location_consent_given', 'false');
       }
 
@@ -174,18 +163,16 @@ export class ApiService {
       
       return firstValueFrom(this.http.post(`${this.apiUrl}/predict/`, formData, { headers })
         .pipe(
-          tap(response => console.log('✅ Prediction API response:', response)),
+          tap(response => console.log('Prediction API response:', response)),
           catchError(this.handleError)
         ));
         
     } catch (error) {
-      console.error('❌ Error in predictImageWithLocation:', error);
       return firstValueFrom(this.predictImage(file, detectionType));
     }
   }
 
   predictImage(file: File, detectionType: 'fruit' | 'leaf'): Observable<any> {
-    console.log('Fallback: predicting without location');
     const formData = new FormData();
     formData.append('image', file);
     formData.append('detection_type', detectionType);
@@ -204,8 +191,6 @@ export class ApiService {
    * Used in verify page to show symptoms before user confirmation
    */
   async previewPrediction(file: File, detectionType: 'fruit' | 'leaf'): Promise<any> {
-    console.log('🔍 Making preview prediction call (no database save)...');
-    
     try {
       const formData = new FormData();
       formData.append('image', file);
@@ -216,12 +201,12 @@ export class ApiService {
       
       return firstValueFrom(this.http.post(`${this.apiUrl}/predict/`, formData, { headers })
         .pipe(
-          tap(response => console.log('✅ Preview prediction response:', response)),
+          tap(response => console.log('Preview prediction response:', response)),
           catchError(this.handleError)
         ));
         
     } catch (error) {
-      console.error('❌ Error in previewPrediction:', error);
+      console.error('Error in previewPrediction:', error);
       throw error;
     }
   }
@@ -247,7 +232,6 @@ export class ApiService {
     locationData?: any,
     locationConsentGiven?: boolean
   ): Promise<any> {
-    console.log('💾 Saving prediction with user verification...');
     
     try {
       const formData = new FormData();
@@ -281,12 +265,6 @@ export class ApiService {
         formData.append('symptoms_data', JSON.stringify(userVerification.symptomsData));
       }
       
-      console.log('🔍 Symptoms data being sent:', {
-        selectedSymptoms: userVerification.selectedSymptoms,
-        primarySymptoms: userVerification.primarySymptoms,
-        alternativeSymptoms: userVerification.alternativeSymptoms,
-        detectedDisease: userVerification.detectedDisease
-      });
       
       // Add location data if available - always save location but track accuracy confirmation
       if (locationData) {
@@ -297,7 +275,6 @@ export class ApiService {
         if (locationData.address) {
           formData.append('location_address', locationData.address);
         }
-        console.log('📍 Location data added to save request with accuracy confirmation:', locationConsentGiven);
       } else {
         formData.append('location_consent_given', 'false');
       }
@@ -306,12 +283,12 @@ export class ApiService {
       
       return firstValueFrom(this.http.post(`${this.apiUrl}/predict/`, formData, { headers })
         .pipe(
-          tap(response => console.log('✅ Prediction saved with verification:', response)),
+          tap(response => console.log('Prediction saved with verification:', response)),
           catchError(this.handleError)
         ));
         
     } catch (error) {
-      console.error('❌ Error in savePredictionWithVerification:', error);
+      console.error('Error in savePredictionWithVerification:', error);
       throw error;
     }
   }
@@ -319,7 +296,6 @@ export class ApiService {
   saveConfirmation(confirmation: UserConfirmation): Observable<any> {
     const headers = this.getAuthHeaders();
     
-    console.log('Saving confirmation with data:', confirmation);
     
     return this.http.post(`${this.apiUrl}/save-confirmation/`, confirmation, { headers })
       .pipe(
@@ -334,7 +310,6 @@ export class ApiService {
     if (error.error instanceof ErrorEvent) {
       errorMessage = `Error: ${error.error.message}`;
     } else {
-      console.log('Full error object:', error);
       
       // Try to extract the message from different possible structures
       if (error.error?.message) {

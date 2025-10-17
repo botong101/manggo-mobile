@@ -102,38 +102,28 @@ export class VerifySymptomsService {
   ): { symptoms: string[], selectionArray: boolean[] } {
     const alternativeSymptoms: string[] = [];
     
-    console.log('🔍 Extracting alternative symptoms from topDiseases:', topDiseases);
     
     if (topDiseases.length >= 2) {
       // Get symptoms from 2nd disease
       const secondDisease = topDiseases[1].disease || topDiseases[1].predicted_disease;
-      console.log('🔍 Second disease found:', secondDisease);
       if (secondDisease) {
         const secondSymptoms = getDiseaseSymptoms(secondDisease);
         alternativeSymptoms.push(...secondSymptoms);
-        console.log('🔍 Added symptoms for second disease:', secondSymptoms.length);
       }
     }
     
     if (topDiseases.length >= 3) {
       // Get symptoms from 3rd disease
       const thirdDisease = topDiseases[2].disease || topDiseases[2].predicted_disease;
-      console.log('🔍 Third disease found:', thirdDisease);
       if (thirdDisease) {
         const thirdSymptoms = getDiseaseSymptoms(thirdDisease);
         alternativeSymptoms.push(...thirdSymptoms);
-        console.log('🔍 Added symptoms for third disease:', thirdSymptoms.length);
       }
     }
     
     // Initialize selection array for alternative symptoms
     const selectionArray = new Array(alternativeSymptoms.length).fill(false);
     
-    console.log('🔍 Alternative symptoms extracted:', {
-      total: alternativeSymptoms.length,
-      symptoms: alternativeSymptoms,
-      topDiseasesCount: topDiseases.length
-    });
 
     return {
       symptoms: alternativeSymptoms,
@@ -184,7 +174,6 @@ export class VerifySymptomsService {
       return false;
     }
     
-    console.log('✅ Symptoms data validation passed!');
     return true;
   }
 }

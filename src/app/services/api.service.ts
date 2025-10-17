@@ -64,13 +64,6 @@ export class ApiService {
   /**
    * Get prediction history
    */
-  getPredictionHistory(): Observable<ApiResponse<any[]>> {
-    return this.http.get<ApiResponse<any[]>>(`${this.apiUrl}/predictions/`).pipe(
-      tap(response => console.log('History response:', response)),
-      catchError(this.handleError)
-    );
-  }
-
   /**
    * Save user confirmation with location data
    */
@@ -89,8 +82,6 @@ export class ApiService {
    */
   async extractLocationFromImageWithFallback(file: File): Promise<LocationData | null> {
     try {
-      console.log('Attempting EXIF location extraction...');
-      
       // First try EXIF data with timeout to prevent hanging
       const exifLocation = await Promise.race([
         this.extractLocationFromImage(file),
@@ -103,17 +94,14 @@ export class ApiService {
       ]);
       
       if (exifLocation) {
-        console.log('Location found in EXIF data');
         return exifLocation;
       }
 
       // If no EXIF location, try GPS as fallback
-      console.log('No EXIF location found, trying GPS fallback...');
       try {
         const gpsLocation = await this.locationService.getCurrentLocation();
         
         if (gpsLocation) {
-          console.log('GPS location obtained as fallback');
           return {
             latitude: gpsLocation.latitude,
             longitude: gpsLocation.longitude,
@@ -125,8 +113,6 @@ export class ApiService {
       } catch (error) {
         console.warn('GPS fallback failed:', error);
       }
-
-      console.log('No location data available from any source');
       return null;
     } catch (error) {
       console.error('Error in extractLocationFromImageWithFallback:', error);
@@ -147,7 +133,6 @@ export class ApiService {
             const lon = EXIF.getTag(this, "GPSLongitude");
             const lonRef = EXIF.getTag(this, "GPSLongitudeRef");
 
-            console.log('EXIF GPS Data:', { lat, latRef, lon, lonRef });
 
             if (lat && lon && latRef && lonRef) {
               // Convert GPS coordinates to decimal degrees
@@ -155,7 +140,6 @@ export class ApiService {
               const longitude = ApiService.convertDMSToDD(lon, lonRef);
 
               if (latitude !== null && longitude !== null) {
-                console.log('EXIF location extracted:', { latitude, longitude });
                 resolve({
                   latitude,
                   longitude,
@@ -165,7 +149,6 @@ export class ApiService {
               }
             }
 
-            console.log('No GPS data found in EXIF');
             resolve(null);
           } catch (error) {
             console.error('Error extracting EXIF location:', error);
@@ -173,13 +156,11 @@ export class ApiService {
           }
         });
       } catch (error) {
-        console.error('Error initializing EXIF data extraction:', error);
         resolve(null);
       }
       
       // Add timeout to prevent hanging
       setTimeout(() => {
-        console.warn('EXIF extraction timeout, resolving with null');
         resolve(null);
       }, 5000);
     });
@@ -278,7 +259,6 @@ export class ApiService {
    */
   async predictImageWithLocation(file: File, detectionType: string = 'leaf'): Promise<any> {
     try {
-      console.log('Processing image with location extraction...');
       
       // Add timeout to prevent hanging indefinitely
       const result = await Promise.race([
@@ -298,7 +278,6 @@ export class ApiService {
       formData.append('image', file);
       formData.append('detection_type', detectionType);
       
-      console.log('Falling back to prediction without location');
       return this.predictImage(formData).toPromise();
     }
   }
@@ -309,10 +288,6 @@ export class ApiService {
   private async processImageWithLocationInternal(file: File, detectionType: string): Promise<any> {
     // Extract location and prepare FormData
     const { formData, locationData } = await this.processImageWithLocation(file, detectionType);
-    
-    console.log('Location data extracted:', locationData);
-    console.log('Sending prediction request with location...');
-    
     // Make the prediction call
     return this.predictImage(formData).toPromise();
   }

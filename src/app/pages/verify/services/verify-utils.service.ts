@@ -97,12 +97,6 @@ export class VerifyUtilsService {
   logEvent(event: string, data?: any) {
     const timestamp = new Date().toISOString();
     const prefix = '[VerifyPage]';
-    
-    if (data) {
-      console.log(`${prefix} ${event}:`, data);
-    } else {
-      console.log(`${prefix} ${event}`);
-    }
   }
 
   /**

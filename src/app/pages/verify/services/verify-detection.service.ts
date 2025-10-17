@@ -108,13 +108,10 @@ export class VerifyDetectionService {
     // Extract top 3 diseases if available
     if (detectionResult.data && detectionResult.data.predictions) {
       topDiseases = detectionResult.data.predictions.slice(0, 3);
-      console.log('🔍 Extracted top diseases from data.predictions:', topDiseases);
     } else if (detectionResult.predictions) {
       topDiseases = detectionResult.predictions.slice(0, 3);
-      console.log('🔍 Extracted top diseases from predictions:', topDiseases);
     } else {
       // If no predictions array, create one from the single prediction
-      console.log('🔍 No predictions array found. Creating from single prediction.');
       topDiseases = [];
       
       // Try to get the primary prediction
@@ -146,7 +143,6 @@ export class VerifyDetectionService {
         });
       }
       
-      console.log('🔍 Created top diseases from single prediction:', topDiseases);
     }
 
     // Extract disease name and confidence
@@ -158,7 +154,6 @@ export class VerifyDetectionService {
       const prediction = detectionResult.data.primary_prediction;
       rawDisease = prediction.disease || '';
       confidenceValue = prediction.confidence_score || 0;
-      console.log('📊 Using nested API response format:', { disease: rawDisease, confidence: confidenceValue });
     } else {
       // Direct API response format (fallback)
       rawDisease = detectionResult.predicted_disease || detectionResult.disease || '';
@@ -178,7 +173,6 @@ export class VerifyDetectionService {
       } else {
         confidenceValue = 0;
       }
-      console.log('📊 Using direct API response format:', { disease: rawDisease, confidence: confidenceValue });
     }
 
     return {
@@ -193,10 +187,8 @@ export class VerifyDetectionService {
    */
   applyConfidenceThreshold(rawDisease: string, confidence: number): string {
     if (confidence < this.CONFIDENCE_THRESHOLD) {
-      console.log(`🤔 Low confidence (${confidence}%) - showing as Unknown (threshold: ${this.CONFIDENCE_THRESHOLD}%)`);
       return 'Unknown';
     } else {
-      console.log(`✅ High confidence (${confidence}%) - showing: ${rawDisease} (threshold: ${this.CONFIDENCE_THRESHOLD}%)`);
       return rawDisease || 'Unknown';
     }
   }

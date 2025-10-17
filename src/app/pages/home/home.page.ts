@@ -60,7 +60,6 @@ export class HomePage implements OnInit {
     // Check for refresh query parameter to ensure fresh data loading
     this.route.queryParams.subscribe(params => {
       if (params['refresh']) {
-        console.log('Home page refresh triggered with timestamp:', params['refresh']);
         // Force clear any cached data
         this.resetPageData();
         // Remove the refresh parameter from URL after handling
@@ -93,16 +92,13 @@ export class HomePage implements OnInit {
     tempKeys.forEach(key => {
       if (localStorage.getItem(key)) {
         localStorage.removeItem(key);
-        console.log(`Cleared temporary data: ${key}`);
       }
     });
     
-    console.log('Home page data reset and temporary cache cleared');
   }
 
   // Public method to force refresh from external components
   public forceRefresh() {
-    console.log('Force refresh triggered');
     this.resetPageData();
     this.loadUserData();
     this.updateTimeGreeting();
@@ -123,13 +119,10 @@ export class HomePage implements OnInit {
     const userData = localStorage.getItem('userInfo') || localStorage.getItem('user_data');
     const authToken = localStorage.getItem('accessToken') || localStorage.getItem('auth_token');
     
-    console.log('Stored user data:', userData);
-    console.log('Auth token exists:', !!authToken);
     
     if (userData) {
       try {
         const user = JSON.parse(userData);
-        console.log('Parsed user object:', user);
         
         this.userName = user.firstName || 
                        user.first_name || 
@@ -139,10 +132,7 @@ export class HomePage implements OnInit {
                        'User';
         
         this.userAvatar = user.avatar || user.profileImage || '';
-        
-        console.log('Final userName:', this.userName);
       } catch (error) {
-        console.error('Error parsing user data:', error);
         this.userName = 'User';
       }
     } else {
@@ -150,9 +140,7 @@ export class HomePage implements OnInit {
       const storedUserName = localStorage.getItem('userName');
       if (storedUserName) {
         this.userName = storedUserName;
-        console.log('Using stored userName:', this.userName);
       } else {
-        console.log('No user data found in localStorage');
         this.userName = 'User';
       }
     }
@@ -222,7 +210,6 @@ export class HomePage implements OnInit {
       return;
     }
     
-    console.log('📷 Importing photo with detection type:', this.selectedDetectionType);
     
     try {
       const image = await Camera.getPhoto({
@@ -233,11 +220,6 @@ export class HomePage implements OnInit {
       });
       const imageData = 'data:image/jpeg;base64,' + image.base64String;
       
-      console.log('✅ Image captured, navigating to verify page...');
-      console.log('📊 Navigation state:', { 
-        hasImage: !!imageData, 
-        detectionType: this.selectedDetectionType 
-      });
       
       this.router.navigate(['/pages/verify'], {
         state: {
@@ -257,7 +239,6 @@ export class HomePage implements OnInit {
       return;
     }
     
-    console.log('📸 Using camera with detection type:', this.selectedDetectionType);
     
     try {
       const image = await Camera.getPhoto({
@@ -268,11 +249,6 @@ export class HomePage implements OnInit {
       });
       const imageData = 'data:image/jpeg;base64,' + image.base64String;
       
-      console.log('✅ Photo taken, navigating to verify page...');
-      console.log('📊 Navigation state:', { 
-        hasImage: !!imageData, 
-        detectionType: this.selectedDetectionType 
-      });
       
       this.router.navigate(['/pages/verify'], {
         state: {
