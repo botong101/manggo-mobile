@@ -71,7 +71,7 @@ export class LoginPage implements OnInit {
         'Accept': 'application/json'
       });
 
-      const apiUrl = `http://127.0.0.1:8000/api/login/`;
+      const apiUrl = `${environment.apiUrl}/login/`;
 
       this.http.post(apiUrl, this.loginForm.value, { headers }).subscribe({
         next: async (response: any) => {

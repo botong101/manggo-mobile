@@ -5,14 +5,12 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { ApiService } from 'src/app/services/apiservice.service';
+import { VerifyPredictionService } from 'src/app/services/prediction';
 import { ExifLocationService, LocationConsentResult } from 'src/app/services/exif-location.service';
 
 // Local verify component services
 import { VerifySymptomsService, SymptomsData } from './services/verify-symptoms.service';
 import { VerifyDetectionService } from './services/verify-detection.service';
-import { VerifyWorkflowService } from './services/verify-workflow.service';
-import { VerifyUtilsService } from './services/verify-utils.service';
 
 @Component({
   selector: 'app-verify',
@@ -65,19 +63,12 @@ export class VerifyPage implements OnInit {
     private http: HttpClient,
     private loadingCtrl: LoadingController,
     private toastCtrl: ToastController,
-    private apiService: ApiService,
+    private verifyPredictionService: VerifyPredictionService,
     private exifLocationService: ExifLocationService,
     // Local verify component services
     private symptomsService: VerifySymptomsService,
-    private detectionService: VerifyDetectionService,
-    private workflowService: VerifyWorkflowService,
-    private utilsService: VerifyUtilsService
+    private detectionService: VerifyDetectionService
   ) {}
-  showMoreSymptoms: boolean = false;
-
-  toggleMoreSymptoms() {
-    this.showMoreSymptoms = !this.showMoreSymptoms;
-  }
   
   // Initialize unified symptoms arrays after symptoms and alternative symptoms are loaded
   private initializeUnifiedSymptoms() {
@@ -155,9 +146,9 @@ export class VerifyPage implements OnInit {
       const file = new File([byteArray], 'image.jpg', { type: 'image/jpeg' });
 
       // Single API call for prediction preview (no database save)
-      this.detectionResult = await this.apiService.previewPrediction(
+      this.detectionResult = await this.verifyPredictionService.previewPrediction(
         file, 
-        (this.detectionType as 'fruit' | 'leaf') || 'leaf'
+        (this.detectionType as 'fruit' | 'leaf')
       );
 
       // Extract top 3 diseases if available
@@ -252,7 +243,7 @@ export class VerifyPage implements OnInit {
       
       
     } catch (error) {
-      console.error('❌ Detection failed:', error);
+      console.error('Detection failed:', error);
       this.showToast('Failed to analyze image. Please try again.', 'danger');
       
       // Don't set fallback values - let user know API failed
@@ -323,59 +314,8 @@ export class VerifyPage implements OnInit {
     }
   }
 
-  private async detectLocation() {
-    try {
-      if (!this.imageData) return;
-      // Since EXIF extraction is temporarily disabled, try device location
-      try {
-        const deviceLocation = await this.getCurrentDeviceLocation();
-        if (deviceLocation) {
-          this.detectedLocation = deviceLocation;
-        }
-      } catch (error) {
-        console.log('Device location failed:', error);
-        // Show user-friendly message for location permission
-        if (error instanceof GeolocationPositionError) {
-          if (error.code === 1) {
-            console.log('Location permission denied by user');
-          } else if (error.code === 2) {
-            console.log('Location unavailable');
-          } else if (error.code === 3) {
-            console.log('Location timeout');
-          }
-        }
-      }
-      
-      // TODO: Re-enable EXIF extraction when library is fixed
-      /*
-      const base64 = this.imageData.replace(/^data:image\/[a-z]+;base64,/, '');
-      const byteCharacters = atob(base64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const file = new File([byteArray], 'image.jpg', { type: 'image/jpeg' });
-
-      const locationResult = await this.exifLocationService.requestLocationConsentWithExif(file);
-      
-      if (locationResult.locationData && locationResult.locationData.hasGps) {
-        this.detectedLocation = {
-          latitude: locationResult.locationData.latitude,
-          longitude: locationResult.locationData.longitude,
-          address: locationResult.locationData.address,
-          source: 'image exif'
-        };
-        console.log('Location detected from image EXIF:', this.detectedLocation);
-      }
-      */
-      
-    } catch (error) {
-      console.error('Location detection failed:', error);
-    }
-  }
-
   private async getCurrentDeviceLocation(): Promise<any> {
+    console.log("im here")
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject('Geolocation not supported');
@@ -547,7 +487,7 @@ export class VerifyPage implements OnInit {
 
   getDiseaseSymptoms(disease: string): string[] {
     // Use detection service for disease symptoms mapping
-    return this.detectionService.getDiseaseSymptoms(disease);
+    return this.detectionService.getDiseaseSymptoms(disease, this.detectionType as 'fruit' | 'leaf');
   }
 
   onDetectionChange(event: any) {
@@ -619,9 +559,9 @@ export class VerifyPage implements OnInit {
       
       
       // Save with verification data to admin/database
-      const finalResult = await this.apiService.savePredictionWithVerification(
+      const finalResult = await this.verifyPredictionService.savePredictionWithVerification(
         file,
-        (this.detectionType as 'fruit' | 'leaf') || 'leaf',
+        (this.detectionType as 'fruit' | 'leaf'),
         {
           isDetectionCorrect: this.isDetectionCorrect === 'true',
           userFeedback: this.userFeedback || undefined,
@@ -715,7 +655,7 @@ export class VerifyPage implements OnInit {
   private extractAlternativeSymptoms() {
     const result = this.symptomsService.extractAlternativeSymptoms(
       this.topDiseases,
-      (disease: string) => this.detectionService.getDiseaseSymptoms(disease)
+      (disease: string) => this.detectionService.getDiseaseSymptoms(disease,this.detectionType as 'fruit' | 'leaf')
     );
     
     this.alternativeSymptoms = result.symptoms;

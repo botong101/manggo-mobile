@@ -35,7 +35,7 @@ export class ExifLocationService {
       try {
         // Check if EXIF library is available
         if (typeof EXIF === 'undefined') {
-          console.warn('📍 EXIF library not available');
+          console.warn('EXIF library not available');
           resolve({
             latitude: 0,
             longitude: 0,
@@ -46,7 +46,7 @@ export class ExifLocationService {
 
         // Set timeout for EXIF processing
         const timeout = setTimeout(() => {
-          console.warn('📍 EXIF extraction timeout');
+          console.warn('EXIF extraction timeout');
           resolve({
             latitude: 0,
             longitude: 0,
@@ -96,7 +96,7 @@ export class ExifLocationService {
             }
           } catch (error) {
             clearTimeout(timeout);
-            console.error('❌ Error processing EXIF GPS data:', error);
+            console.error('Error processing EXIF GPS data:', error);
             resolve({
               latitude: 0,
               longitude: 0,
@@ -105,7 +105,7 @@ export class ExifLocationService {
           }
         });
       } catch (error) {
-        console.error('❌ Error in EXIF extraction setup:', error);
+        console.error('Error in EXIF extraction setup:', error);
         resolve({
           latitude: 0,
           longitude: 0,
@@ -194,7 +194,7 @@ export class ExifLocationService {
       };
 
     } catch (error) {
-      console.error('❌ Error in location consent process:', error);
+      console.error('Error in location consent process:', error);
       // Don't show toast for EXIF errors - just continue without location
       return {
         consentGiven: false,
@@ -209,7 +209,7 @@ export class ExifLocationService {
   private async showLocationConsentAlert(locationData: ExifLocationData): Promise<boolean> {
     return new Promise(async (resolve) => {
       const alert = await this.alertCtrl.create({
-        header: '📍 Location Data Found',
+        header: 'Location Data Found',
         subHeader: 'Your photo contains GPS coordinates',
         message: `
           <div style="text-align: left; padding: 10px 0;">

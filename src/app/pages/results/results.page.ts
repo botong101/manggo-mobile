@@ -3,7 +3,7 @@ import { IonicModule, LoadingController, ToastController } from '@ionic/angular'
 import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { ApiService, LocationData } from 'src/app/services/apiservice.service';
+import { LocationData } from 'src/app/services/prediction';
 
 @Component({
   selector: 'app-results',
@@ -89,8 +89,7 @@ export class ResultsPage implements OnInit {
     private router: Router,
     private http: HttpClient,
     private loadingCtrl: LoadingController,
-    private toastCtrl: ToastController,
-    private apiService: ApiService
+    private toastCtrl: ToastController
   ) {}
 
   ngOnInit() {

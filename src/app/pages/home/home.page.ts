@@ -1,5 +1,4 @@
 import { Component, OnInit } from '@angular/core';
-// ...existing code...
 import { environment } from '../../../environments/environment';
 import { IonicModule, ToastController, ModalController } from '@ionic/angular';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -18,7 +17,7 @@ export class HomePage implements OnInit {
   userName: string = 'User';
   currentTime: string = '';
   userAvatar: string = '';
-  selectedDetectionType: string | null = null; // 'leaf' or 'fruit'
+  selectedDetectionType: string | null = null;
   selectedImageFile: any = null;
   
   // Statistics
@@ -228,7 +227,7 @@ export class HomePage implements OnInit {
         }
       });
     } catch (err) {
-      console.error('❌ Photo import error:', err);
+      console.error('Photo import error:', err);
       await this.showToast('Photo import cancelled or failed.', 'warning');
     }
   }
@@ -257,7 +256,7 @@ export class HomePage implements OnInit {
         }
       });
     } catch (err) {
-      console.error('❌ Camera error:', err);
+      console.error('Camera error:', err);
       await this.showToast('Camera cancelled or failed.', 'warning');
     }
   }
