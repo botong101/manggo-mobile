@@ -5,7 +5,8 @@ const config: CapacitorConfig = {
   appName: 'Mangosense',
   webDir: 'www', // Changed from 'dist/Mangosense-main' to 'dist'
   server: {
-    androidScheme: 'https'
+    androidScheme: 'http',
+    cleartext: true
   },
   android: {
     allowMixedContent: true,

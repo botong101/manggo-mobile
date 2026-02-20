@@ -8,7 +8,7 @@ import { environment } from '../../../environments/environment';
 import { VerifyPredictionService } from 'src/app/services/prediction';
 import { ExifLocationService, LocationConsentResult } from 'src/app/services/exif-location.service';
 
-// Local verify component services
+// our local services for this page
 import { VerifySymptomsService, SymptomsData } from './services/verify-symptoms.service';
 import { VerifyDetectionService } from './services/verify-detection.service';
 
@@ -23,39 +23,39 @@ export class VerifyPage implements OnInit {
   imageData: string | null = null;
   detectionType: string | null = null;
   isProcessing = false;
-  apiCallFailed = false; // Track if initial API call failed
+  apiCallFailed = false; // did the api break or not
   
-  // Confidence threshold for reliable detection
-  private readonly CONFIDENCE_THRESHOLD = 30; // 30% minimum confidence
+  // minimum confidence we accept
+  private readonly CONFIDENCE_THRESHOLD = 30; // 30%
 
-  // Detection result from initial API call
+  // what the ai found
   detectionResult: any = null;
   
-  // Step-by-step workflow
+  // wizard steps stuff
   currentStep: 1 | 2 | 3 | 4 = 1;
   totalSteps: number = 4;
   
-  // Form fields
-  isDetectionCorrect: string | null = 'true'; // Default to true - symptoms are correct by default
-  locationAccuracyConfirmed: string | null = null; // Changed from locationConsentGiven - this is about confirming accuracy
+  // form stuff
+  isDetectionCorrect: string | null = 'true'; // default yeah its correct
+  locationAccuracyConfirmed: string | null = null; // user says if location is right
   userFeedback: string = '';
 
-  // Detection result (only shown at final step)
+  // what we show at the end
   detectedDisease = '';
   confidence = 0;
-  symptoms: string[] = []; // Primary symptoms
+  symptoms: string[] = []; // main symptoms
   
-  // Top 3 diseases from API
+  // top 3 guesses from ai
   topDiseases: any[] = [];
   alternativeSymptoms: string[] = [];
   selectedSymptoms: boolean[] = [];
   selectedAlternativeSymptoms: boolean[] = [];
   
-  // Unified symptoms management
-  allSymptoms: string[] = []; // Combined primary + alternative symptoms
-  allSelectedSymptoms: boolean[] = []; // Single selection array for all symptoms
+  // all symptoms together
+  allSymptoms: string[] = []; // both types combined
+  allSelectedSymptoms: boolean[] = []; // checkboxes for everything
   showMoreOptions: boolean = false;
-  // Location data
+  // where they are
   detectedLocation: any = null;
 
   constructor(
@@ -65,17 +65,17 @@ export class VerifyPage implements OnInit {
     private toastCtrl: ToastController,
     private verifyPredictionService: VerifyPredictionService,
     private exifLocationService: ExifLocationService,
-    // Local verify component services
+    // our helpers
     private symptomsService: VerifySymptomsService,
     private detectionService: VerifyDetectionService
   ) {}
   
-  // Initialize unified symptoms arrays after symptoms and alternative symptoms are loaded
+  // setup the big symptoms arrays after we got em
   private initializeUnifiedSymptoms() {
-    // Combine all symptoms into one array
+    // mash em together
     this.allSymptoms = [...this.symptoms, ...this.alternativeSymptoms];
     
-    // Initialize selection array for all symptoms
+    // make checkboxes for all
     this.allSelectedSymptoms = new Array(this.allSymptoms.length).fill(false);
   }
 
@@ -83,29 +83,29 @@ export class VerifyPage implements OnInit {
     this.showMoreOptions = !this.showMoreOptions;
   }
 
-  // Handle symptom checkbox changes
+  // when user clicks a symptom checkbox
   onSymptomChange(index: number, event: any) {
     this.selectedSymptoms[index] = event.detail.checked;
     
-    // If user starts checking symptoms after setting detection to incorrect, reset to correct
+    // flip back to correct if they start checking stuff
     if (event.detail.checked && this.isDetectionCorrect === 'false') {
       this.isDetectionCorrect = 'true';
     }
   }
 
-  // Handle alternative symptom checkbox changes
+  // when they click alternative ones
   onAlternativeSymptomChange(index: number, event: any) {
-    // Alternative symptoms start after primary symptoms in the unified array
+    // offset cuz alternatives come after main ones
     const unifiedIndex = this.symptoms.length + index;
     this.allSelectedSymptoms[unifiedIndex] = event.detail.checked;
     
-    // If user starts checking symptoms after setting detection to incorrect, reset to correct
+    // same deal flip back if checking stuff
     if (event.detail.checked && this.isDetectionCorrect === 'false') {
       this.isDetectionCorrect = 'true';
     }
   }
   ngOnInit() {
-    // Initialize unified symptoms selection array - will be properly sized after symptoms are loaded
+    // empty array for now, fill it later
     this.allSelectedSymptoms = [];
     
     const nav = window.history.state;
@@ -118,9 +118,9 @@ export class VerifyPage implements OnInit {
       this.showToast('No image provided. Please take or select a photo.', 'warning');
       this.goBack();
     } else {
-      // Get actual AI detection result from API
+      // call the ai
       this.getDetectionResult();
-      // Try to detect location from image
+      // try to get gps stuff
       this.detectLocationWithPermission();
     }
   }
@@ -135,7 +135,7 @@ export class VerifyPage implements OnInit {
     await loading.present();
 
     try {
-      // Convert base64 to File for API call (only once)
+      // turn base64 into a real file
       const base64 = this.imageData.replace(/^data:image\/[a-z]+;base64,/, '');
       const byteCharacters = atob(base64);
       const byteNumbers = new Array(byteCharacters.length);
@@ -145,22 +145,22 @@ export class VerifyPage implements OnInit {
       const byteArray = new Uint8Array(byteNumbers);
       const file = new File([byteArray], 'image.jpg', { type: 'image/jpeg' });
 
-      // Single API call for prediction preview (no database save)
+      // send to ai (just preview dont save yet)
       this.detectionResult = await this.verifyPredictionService.previewPrediction(
         file, 
         (this.detectionType as 'fruit' | 'leaf')
       );
 
-      // Extract top 3 diseases if available
+      // grab top 3 diseases
       if (this.detectionResult.data && this.detectionResult.data.predictions) {
         this.topDiseases = this.detectionResult.data.predictions.slice(0, 3);
       } else if (this.detectionResult.predictions) {
         this.topDiseases = this.detectionResult.predictions.slice(0, 3);
       } else {
-        // If no predictions array, create one from the single prediction
+        // no predictions array so make one from what we got
         this.topDiseases = [];
         
-        // Try to get the primary prediction
+        // try to find the main disease
         const primaryDisease = this.detectionResult.predicted_disease || 
                               this.detectionResult.disease || 
                               (this.detectionResult.data && this.detectionResult.data.primary_prediction && this.detectionResult.data.primary_prediction.disease);
@@ -173,12 +173,12 @@ export class VerifyPage implements OnInit {
                        (this.detectionResult.data && this.detectionResult.data.primary_prediction && this.detectionResult.data.primary_prediction.confidence_score) || 0
           });
           
-          // Add some common alternative diseases for demonstration
-          // You can modify this list based on your domain knowledge
+          // throw in some other common diseases too
+          // can change this list later
           const commonAlternatives = ['Anthracnose', 'Bacterial Canker', 'Powdery Mildew', 'Die Back', 'Sooty Mould'];
           const filteredAlternatives = commonAlternatives.filter(disease => disease !== primaryDisease);
           
-          // Add up to 2 alternatives with lower confidence
+          // add 2 more with fake lower confidence
           filteredAlternatives.slice(0, 2).forEach((disease, index) => {
             this.topDiseases.push({
               disease: disease,
@@ -190,30 +190,30 @@ export class VerifyPage implements OnInit {
         
       }
 
-      // Extract the detection results with confidence threshold
-      // Handle both direct response and nested response formats
+      // get the results with threshold check
+      // handles different response formats
       let rawDisease = '';
       let confidenceValue: number = 0;
       
       if (this.detectionResult.data && this.detectionResult.data.primary_prediction) {
-        // Nested API response format
+        // newer response format
         const prediction = this.detectionResult.data.primary_prediction;
         rawDisease = prediction.disease || '';
         confidenceValue = prediction.confidence_score || 0;
       } else {
-        // Direct API response format (fallback)
+        // old format maybe
         rawDisease = this.detectionResult.predicted_disease || this.detectionResult.disease || '';
         const rawConfidence = this.detectionResult.confidence;
         
-        // Handle different confidence formats
+        // handle diff confidence formats ugh
         if (typeof rawConfidence === 'string' && rawConfidence.includes('%')) {
           confidenceValue = parseFloat(rawConfidence.replace('%', ''));
         } else if (typeof rawConfidence === 'number') {
           if (rawConfidence <= 1) {
-            // If confidence is a decimal (0.4558), convert to percentage
+            // its decimal like 0.45 so multiply
             confidenceValue = rawConfidence * 100;
           } else {
-            // Already a percentage
+            // already good as is
             confidenceValue = rawConfidence;
           }
         } else {
@@ -223,53 +223,53 @@ export class VerifyPage implements OnInit {
       
       this.confidence = Math.round(confidenceValue);
       
-      // Apply confidence threshold - use "Unknown" if below threshold
+      // if too low confidence call it unknown
       if (this.confidence < this.CONFIDENCE_THRESHOLD) {
         this.detectedDisease = 'Unknown';
       } else {
         this.detectedDisease = rawDisease || 'Unknown';
       }
       
-      // Extract symptoms for the detected disease (or generic symptoms for Unknown)
+      // get symptoms for whatever disease we found
       this.symptoms = this.getDiseaseSymptoms(this.detectedDisease);
       
-      // Extract alternative symptoms from top 2 and 3 diseases
+      // grab more symptoms from runner ups
       this.extractAlternativeSymptoms();
       
-      // Initialize unified symptoms arrays
+      // setup the big arrays
       this.initializeUnifiedSymptoms();
       
-      this.apiCallFailed = false; // API call succeeded
+      this.apiCallFailed = false; // yay it worked
       
       
     } catch (error) {
       console.error('Detection failed:', error);
       this.showToast('Failed to analyze image. Please try again.', 'danger');
       
-      // Don't set fallback values - let user know API failed
+      // dont fake it just tell em it broke
       this.detectedDisease = '';
       this.confidence = 0;
-      this.apiCallFailed = true; // Mark API call as failed
+      this.apiCallFailed = true; // rip
     } finally {
       await loading.dismiss();
     }
   }
 
   /**
-   * Enhanced location detection with proper permission handling
+   * get location with permission stuff
    */
   private async detectLocationWithPermission() {
     try {
       if (!this.imageData) return;
       
-      // Since EXIF extraction is temporarily disabled, try device location
+      // exif extraction is broken rn so just use device
       
-      // Check if geolocation is supported
+      // see if browser can do geolocation
       if (!navigator.geolocation) {
         return;
       }
 
-      // Check current permission status
+      // check if we got permission
       if ('permissions' in navigator) {
         try {
           const permission = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
@@ -308,7 +308,7 @@ export class VerifyPage implements OnInit {
         }
       }
       
-      // TODO: Re-enable EXIF extraction when library is fixed
+      // TODO maybe fix exif later idk
       
     } catch (error) {
     }
@@ -349,11 +349,11 @@ export class VerifyPage implements OnInit {
   }
 
   /**
-   * Convert latitude and longitude to actual address using reverse geocoding
+   * turn lat/long into actual address
    */
   private async reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
-      // Using OpenStreetMap Nominatim API (free, no API key required)
+      // free api no key needed yay
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
         {
@@ -370,12 +370,12 @@ export class VerifyPage implements OnInit {
       const data = await response.json();
       
       if (data && data.display_name) {
-        // Try to format a more readable address
+        // make it readable
         const address = data.address;
         if (address) {
           const parts = [];
           
-          // Add specific location details
+          // build address parts
           if (address.house_number) parts.push(address.house_number);
           if (address.road) parts.push(address.road);
           if (address.village) parts.push(address.village);
@@ -387,11 +387,11 @@ export class VerifyPage implements OnInit {
           if (address.country) parts.push(address.country);
           
           if (parts.length > 0) {
-            return parts.slice(0, 3).join(', '); // Take first 3 parts for readability
+            return parts.slice(0, 3).join(', '); // just first 3 cuz too long otherwise
           }
         }
         
-        // Fallback to display name
+        // use full name if parsing didnt work
         return data.display_name;
       }
       
@@ -399,9 +399,9 @@ export class VerifyPage implements OnInit {
       
     } catch (error) {
       
-      // Fallback: try alternative service or return coordinates
+      // try backup service or just show coords
       try {
-        // Alternative: Try another geocoding service
+        // different api as backup
         const fallbackResponse = await fetch(
           `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=en`
         );
@@ -416,7 +416,7 @@ export class VerifyPage implements OnInit {
         console.error('Fallback geocoding also failed:', fallbackError);
       }
       
-      // Final fallback: return formatted coordinates
+      // whatever just show numbers
       return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     }
   }
@@ -425,7 +425,7 @@ export class VerifyPage implements OnInit {
     this.router.navigate(['/pages/home'], { replaceUrl: true, queryParams: { refresh: Date.now() } });
   }
 
-  // Step navigation methods
+  // go forward or back thru wizard
   nextStep() {
     if (this.currentStep < this.totalSteps) {
       this.currentStep++;
@@ -440,26 +440,26 @@ export class VerifyPage implements OnInit {
 
   canProceedToNextStep(): boolean {
     switch (this.currentStep) {
-      case 1: // Symptoms confirmation
-        // Check if detection is confirmed AND at least one symptom is checked (if detection is correct)
+      case 1: // symptoms step
+        // need to pick detection and check symptoms
         if (this.isDetectionCorrect === null) {
-          return false; // Must confirm detection first
+          return false; // gotta say yes or no first
         }
         
         if (this.isDetectionCorrect === 'false') {
-          return true; // If symptoms don't match, can proceed without checking symptoms
+          return true; // if they said no can skip symptoms
         }
         
-        // If detection is correct, must have at least one symptom checked
+        // otherwise need at least 1 symptom
         const hasPrimarySymptoms = this.selectedSymptoms.some(selected => selected);
         const hasAlternativeSymptoms = this.selectedAlternativeSymptoms.some(selected => selected);
         return hasPrimarySymptoms || hasAlternativeSymptoms;
         
-      case 2: // Location confirmation
+      case 2: // location step
         return this.locationAccuracyConfirmed !== null;
-      case 3: // Additional comments
+      case 3: // notes - whatever
         return true; // Optional step
-      case 4: // Final confirmation
+      case 4: // done
         return true;
       default:
         return false;
@@ -481,12 +481,12 @@ export class VerifyPage implements OnInit {
     }
   }
 
-  // Get symptoms for the detected disease
+  // get symptoms for the disease
   
 
 
   getDiseaseSymptoms(disease: string): string[] {
-    // Use detection service for disease symptoms mapping
+    // ask service for symptoms
     return this.detectionService.getDiseaseSymptoms(disease, this.detectionType as 'fruit' | 'leaf');
   }
 
@@ -494,11 +494,11 @@ export class VerifyPage implements OnInit {
     this.isDetectionCorrect = event.detail.value;
   }
 
-  // Method to set detection as incorrect when user clicks the "No" button
+  // click no button
   setDetectionIncorrect() {
     this.isDetectionCorrect = 'false';
     
-    // Auto uncheck all selected symptoms when detection is set to incorrect
+    // uncheck everything when they say no
     this.selectedSymptoms = new Array(this.symptoms.length).fill(false);
     this.selectedAlternativeSymptoms = new Array(this.alternativeSymptoms.length).fill(false);
   }
@@ -528,22 +528,22 @@ export class VerifyPage implements OnInit {
     
     try {
       
-      // Prepare location consent data - location consent was already given during registration
-      // User is only confirming the accuracy of the detected location
+      // location consent already given at signup
+      // just checking if detected spot is accurate
       const locationConsentResult: LocationConsentResult = {
-        consentGiven: true, // Always true since consent was given during registration
+        consentGiven: true, // always yes cuz signup
         locationData: this.detectedLocation,
-        locationAccuracyConfirmed: this.locationAccuracyConfirmed === 'true' // User's confirmation of location accuracy
+        locationAccuracyConfirmed: this.locationAccuracyConfirmed === 'true' // is the spot right
       };
       
-      // Show loading for saving the verification
+      // show spinner while saving
       loading = await this.loadingCtrl.create({ 
         message: 'Saving analysis...',
         spinner: 'crescent'
       });
       await loading.present();
       
-      // Now save the analysis with user verification and location data
+      // ok now actually save it
       
       const base64 = this.imageData.replace(/^data:image\/[a-z]+;base64,/, '');
       const byteCharacters = atob(base64);
@@ -554,29 +554,29 @@ export class VerifyPage implements OnInit {
       const byteArray = new Uint8Array(byteNumbers);
       const file = new File([byteArray], 'image.jpg', { type: 'image/jpeg' });
       
-      // Get all selected symptoms for the API
+      // get all checked symptoms for api
       const symptomsData = this.prepareSymptomsDataForAPI();
       
       
-      // Save with verification data to admin/database
+      // send to server
       const finalResult = await this.verifyPredictionService.savePredictionWithVerification(
         file,
         (this.detectionType as 'fruit' | 'leaf'),
         {
           isDetectionCorrect: this.isDetectionCorrect === 'true',
           userFeedback: this.userFeedback || undefined,
-          selectedSymptoms: symptomsData.allSelectedSymptoms, // All selected symptoms combined
-          primarySymptoms: symptomsData.selectedPrimarySymptoms, // Primary disease symptoms only
-          alternativeSymptoms: symptomsData.selectedAlternativeSymptoms, // Alternative symptoms only
+          selectedSymptoms: symptomsData.allSelectedSymptoms, // all ticked symptoms
+          primarySymptoms: symptomsData.selectedPrimarySymptoms, // main ones
+          alternativeSymptoms: symptomsData.selectedAlternativeSymptoms, // extra ones
           detectedDisease: this.detectedDisease,
-          topDiseases: this.topDiseases, // Include all top diseases for reference
+          topDiseases: this.topDiseases, // top 3 for reference
           confidence: this.confidence,
           
-          // Include comprehensive symptoms data
+          // all the symptoms info
           symptomsData: symptomsData
-        } as any, // Use 'as any' temporarily to avoid type errors
-        locationConsentResult.locationData, // Always pass location data if available
-        locationConsentResult.locationAccuracyConfirmed // Pass user's accuracy confirmation
+        } as any, // use any cuz types are weird
+        locationConsentResult.locationData, // gps stuff
+        locationConsentResult.locationAccuracyConfirmed // did they confirm location
       );
       
       if (loading) {
@@ -586,7 +586,7 @@ export class VerifyPage implements OnInit {
       this.isProcessing = false;
       
       
-      // Navigate to results with verification data
+      // go to results page with all the data
       this.router.navigate(['/pages/results'], { 
         state: { 
           result: finalResult,
@@ -645,13 +645,29 @@ export class VerifyPage implements OnInit {
     await toast.present();
   }
 
-  // Helper method to get selected symptoms
+  // get checked main symptoms
   getSelectedSymptoms(): string[] {
     return this.symptoms.filter((_, i) => this.selectedSymptoms[i]);
   }
 
-  // Extract symptoms from top 2 and 3 diseases for "more options"
-  // Extract symptoms from top 2 and 3 diseases for "more options" using service
+  // get checked primary symptoms via service
+  getSelectedPrimarySymptoms(): string[] {
+    return this.symptomsService.getSelectedPrimarySymptoms(
+      this.symptoms,
+      this.selectedSymptoms
+    );
+  }
+
+  // get checked alt symptoms via service
+  getSelectedAlternativeSymptoms(): string[] {
+    return this.symptomsService.getSelectedAlternativeSymptoms(
+      this.alternativeSymptoms,
+      this.selectedAlternativeSymptoms
+    );
+  }
+
+  // grab symptoms from 2nd and 3rd disease guesses
+  // grabs from runner up diseases using service
   private extractAlternativeSymptoms() {
     const result = this.symptomsService.extractAlternativeSymptoms(
       this.topDiseases,
@@ -662,7 +678,7 @@ export class VerifyPage implements OnInit {
     this.selectedAlternativeSymptoms = result.selectionArray;
   }
 
-  // Helper method to get all selected symptoms (primary + alternative) using service
+  // get everything thats checked using service
   getAllSelectedSymptoms(): string[] {
     return this.symptomsService.getAllSelectedSymptoms(
       this.symptoms,
@@ -672,7 +688,7 @@ export class VerifyPage implements OnInit {
     );
   }
 
-  // Prepare symptoms data for API backend using service
+  // package symptoms for backend
   prepareSymptomsDataForAPI(): SymptomsData {
     return this.symptomsService.prepareSymptomsDataForAPI(
       this.detectedDisease,

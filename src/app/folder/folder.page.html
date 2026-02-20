@@ -14,7 +14,7 @@
 
 <ion-content [fullscreen]="true" class="folder-content">
   <div class="content-wrapper">
-    <!-- History Section -->
+    <!-- history page stuff -->
     <div *ngIf="folder === 'History'" class="section-container">
       <div class="section-header">
         <ion-icon name="time-outline" class="section-icon"></ion-icon>
@@ -49,7 +49,7 @@
       </div>
     </div>
 
-    <!-- Reports Section -->
+    <!-- reports page stuff -->
     <div *ngIf="folder === 'Reports'" class="section-container">
       <div class="section-header">
         <ion-icon name="bar-chart-outline" class="section-icon"></ion-icon>
@@ -84,7 +84,7 @@
       </div>
     </div>
 
-    <!-- Settings Section -->
+    <!-- settings page stuff -->
     <div *ngIf="folder === 'Settings'" class="section-container">
       <div class="section-header">
         <ion-icon name="settings-outline" class="section-icon"></ion-icon>
@@ -119,7 +119,7 @@
       </div>
     </div>
 
-    <!-- Help Section -->
+    <!-- help page stuff -->
     <div *ngIf="folder === 'Help'" class="section-container">
       <div class="section-header">
         <ion-icon name="help-circle-outline" class="section-icon"></ion-icon>
@@ -154,7 +154,7 @@
       </div>
     </div>
 
-    <!-- Tips Section -->
+    <!-- tips page stuff -->
     <div *ngIf="folder === 'Tips'" class="section-container">
       <div class="section-header">
         <ion-icon name="bulb-outline" class="section-icon"></ion-icon>
@@ -189,7 +189,7 @@
       </div>
     </div>
 
-    <!-- Default/Fallback Content -->
+    <!-- default fallback content -->
     <div *ngIf="!['History', 'Reports', 'Settings', 'Help', 'Tips'].includes(folder)" class="section-container">
       <div class="section-header">
         <ion-icon name="folder-outline" class="section-icon"></ion-icon>

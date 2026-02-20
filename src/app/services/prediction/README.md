@@ -117,7 +117,6 @@ interface ApiResponse<T> {
 
 interface UserConfirmation {
   imageId?: number;
-  isCorrect?: boolean;
   actualDisease?: string;
   feedback?: string;
   // ... more fields

@@ -18,7 +18,7 @@
       <ion-icon name="arrow-back-outline"></ion-icon>
     </ion-button>
 
-    <!-- Loading state while verification modal is shown -->
+    <!-- loading spinner while waiting -->
     <div *ngIf="!isVerified && !mainDisease" class="verification-pending">
       <div class="pending-content">
         <ion-spinner name="crescent"></ion-spinner>
@@ -27,11 +27,11 @@
       </div>
     </div>
 
-    <!-- Results section - show if verified OR if we have main disease data -->
+    <!-- main results display -->
     <div class="results-section" *ngIf="isVerified || mainDisease">
       <h2 class="page-title">Analysis Results</h2>
       
-      <!-- Image Display -->
+      <!-- the image that was scanned -->
       <div class="image-container">
         <div class="image-placeholder">
           <img *ngIf="image" [src]="image" alt="Analyzed Image" class="analyzed-image" />
@@ -42,7 +42,7 @@
         </div>
       </div>
 
-      <!-- Main Disease Result -->
+      <!-- main disease detected -->
       <div class="main-result-card">
         <div class="result-header">
           <ion-icon name="medical-outline" class="result-icon"></ion-icon>
@@ -57,7 +57,7 @@
         </p>
       </div>
 
-      <!-- Top Predictions -->
+      <!-- shows top 3 predictions from AI -->
       <div class="predictions-card" *ngIf="probabilities.length > 0">
         <div class="card-header">
           <ion-icon name="analytics-outline" class="card-icon"></ion-icon>
@@ -79,7 +79,7 @@
         </div>
       </div>
       
-      <!-- Simple confidence display when detailed predictions not available -->
+      <!-- fallback if no detailed predictions -->
       <div class="simple-confidence-card" *ngIf="probabilities.length === 0 && mainDisease">
         <div class="card-header">
           <ion-icon name="analytics-outline" class="card-icon"></ion-icon>
@@ -101,7 +101,7 @@
         </div>
       </div>
 
-      <!-- Disease Information -->
+      <!-- info about the disease -->
       <div class="info-card">
         <div class="card-header">
           <ion-icon name="information-circle-outline" class="card-icon"></ion-icon>
@@ -116,7 +116,7 @@
         </div>
       </div>
 
-      <!-- Action Buttons -->
+      <!-- buttons at the bottom -->
       <div class="action-buttons">
         <ion-button class="primary-button" expand="block" (click)="retakePhoto()">
           <ion-icon slot="start" name="camera-outline"></ion-icon>

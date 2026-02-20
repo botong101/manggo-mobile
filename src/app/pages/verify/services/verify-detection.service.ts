@@ -19,13 +19,11 @@ export interface ProcessedDetectionData {
 })
 export class VerifyDetectionService {
 
-  private readonly CONFIDENCE_THRESHOLD = 30; // 30% minimum confidence
+  private readonly CONFIDENCE_THRESHOLD = 30; 
 
   constructor() { }
 
-  /**
-   * Get symptoms for a specific disease
-   */
+ 
   getDiseaseSymptoms(disease: string, plantPart: 'fruit' | 'leaf'): string[]{
     const symptomsMap: {[key:string]:{fruit:string[], leaf:string[]} } = {
       'Anthracnose':{ 
@@ -153,9 +151,9 @@ export class VerifyDetectionService {
     ];
   }
 
-  /**
-   * Convert base64 image data to File object
-   */
+  
+  //turn base64 string into file object
+   
   base64ToFile(imageData: string): File {
     const base64 = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
     const byteCharacters = atob(base64);
@@ -168,21 +166,21 @@ export class VerifyDetectionService {
   }
 
   /**
-   * Process detection result and extract structured data
+   * take api result and organize it nice
    */
   processDetectionResult(detectionResult: any): ProcessedDetectionData {
     let topDiseases: any[] = [];
 
-    // Extract top 3 diseases if available
+    // grab top 3 if we got em
     if (detectionResult.data && detectionResult.data.predictions) {
       topDiseases = detectionResult.data.predictions.slice(0, 3);
     } else if (detectionResult.predictions) {
       topDiseases = detectionResult.predictions.slice(0, 3);
     } else {
-      // If no predictions array, create one from the single prediction
+      // no array so build one ourselves
       topDiseases = [];
       
-      // Try to get the primary prediction
+      // try to find the main one
       const primaryDisease = detectionResult.predicted_disease || 
                             detectionResult.disease || 
                             (detectionResult.data && detectionResult.data.primary_prediction && detectionResult.data.primary_prediction.disease);
@@ -197,11 +195,11 @@ export class VerifyDetectionService {
           confidence: primaryConfidence
         });
         
-        // Add some common alternative diseases for demonstration
+        // throw in some common diseases too
         const commonAlternatives = ['Anthracnose', 'Bacterial Canker', 'Powdery Mildew', 'Die Back', 'Sooty Mould'];
         const filteredAlternatives = commonAlternatives.filter(disease => disease !== primaryDisease);
         
-        // Add up to 2 alternatives with lower confidence
+        // add 2 more with lower confidence
         filteredAlternatives.slice(0, 2).forEach((disease, index) => {
           topDiseases.push({
             disease: disease,
@@ -213,29 +211,29 @@ export class VerifyDetectionService {
       
     }
 
-    // Extract disease name and confidence
+    // pull out disease name and confidence
     let rawDisease = '';
     let confidenceValue: number = 0;
     
     if (detectionResult.data && detectionResult.data.primary_prediction) {
-      // Nested API response format
+      // newer format
       const prediction = detectionResult.data.primary_prediction;
       rawDisease = prediction.disease || '';
       confidenceValue = prediction.confidence_score || 0;
     } else {
-      // Direct API response format (fallback)
+      // old format backup
       rawDisease = detectionResult.predicted_disease || detectionResult.disease || '';
       const rawConfidence = detectionResult.confidence;
       
-      // Handle different confidence formats
+      // confidence can come in diff formats ugh
       if (typeof rawConfidence === 'string' && rawConfidence.includes('%')) {
         confidenceValue = parseFloat(rawConfidence.replace('%', ''));
       } else if (typeof rawConfidence === 'number') {
         if (rawConfidence <= 1) {
-          // If confidence is a decimal (0.4558), convert to percentage
+          // decimal like 0.45 so times 100
           confidenceValue = rawConfidence * 100;
         } else {
-          // Already a percentage
+          // its already percentage
           confidenceValue = rawConfidence;
         }
       } else {
@@ -251,7 +249,7 @@ export class VerifyDetectionService {
   }
 
   /**
-   * Apply confidence threshold and get final detected disease
+   * use unknown if confidence too low
    */
   applyConfidenceThreshold(rawDisease: string, confidence: number): string {
     if (confidence < this.CONFIDENCE_THRESHOLD) {
@@ -262,7 +260,7 @@ export class VerifyDetectionService {
   }
 
   /**
-   * Get confidence threshold value
+   * get the threshold number
    */
   getConfidenceThreshold(): number {
     return this.CONFIDENCE_THRESHOLD;

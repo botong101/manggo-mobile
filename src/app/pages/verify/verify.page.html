@@ -60,7 +60,6 @@
 
     <!-- Step Content -->
     <div class="step-content-wrapper">
-      <!-- Step 1: Symptoms Detection Confirmation -->
       <div *ngIf="currentStep === 1 && !apiCallFailed" class="step-content">
         <div class="symptoms-section">
           <div class="symptoms-header">
@@ -68,9 +67,9 @@
             <span>Check if you see these symptoms:</span>
           </div>
           <div class="symptoms-card">
-            <!-- Primary disease symptoms -->
+            <!-- main symptoms for the detected disease -->
             <div class="primary-symptoms">
-              <h4>{{ detectedDisease }} Symptoms</h4>
+              <h4>Possible Symptoms</h4>
               
               
               
@@ -78,7 +77,6 @@
                 <li *ngFor="let symptom of symptoms; let i = index">
                   <ion-checkbox 
                     [(ngModel)]="selectedSymptoms[i]" 
-                    [checked]="selectedSymptoms[i]"
                     (ionChange)="onSymptomChange(i, $event)">
                   </ion-checkbox>
                   <span>{{ symptom }}</span>
@@ -86,7 +84,7 @@
               </ul>
             </div>
             
-            <!-- More Options dropdown for alternative diseases -->
+            <!-- dropdown for other diseases symptoms -->
             <div class="more-options-container" *ngIf="alternativeSymptoms.length > 0 || topDiseases.length > 1">
               <ion-button 
                 fill="clear" 
@@ -99,7 +97,7 @@
                 {{ showMoreOptions ? 'See fewer options' : 'See more options' }}
               </ion-button>
               
-              <!-- Alternative symptoms (collapsed/expanded) -->
+              <!-- other symptoms from top 2 and 3 diseases -->
               <div class="alternative-symptoms" *ngIf="showMoreOptions">
                 <h4>Other Possible Symptoms</h4>
                 <p class="alternative-subtitle">Based on other possible diseases detected</p>
@@ -139,7 +137,7 @@
         </div>
       </div>
 
-      <!-- Step 2: Location Confirmation -->
+      <!-- step 2 - location stuff -->
       <div *ngIf="currentStep == 2" class="step-content">
         <div class="location-section">
           <h3 class="section-title">
@@ -187,7 +185,7 @@
         </div>
       </div>
 
-      <!-- Step 3: Additional Comments -->
+      <!-- step 3 - user comments section -->
       <div *ngIf="currentStep == 3" class="step-content">
         <div class="comments-section">
           <h3 class="section-title">
@@ -205,7 +203,7 @@
         </div>
       </div>
 
-      <!-- Step 4: Final Confirmation -->
+      <!-- step 4 - review everything before submit -->
       <div *ngIf="currentStep == 4" class="step-content">
         <div class="summary-section">
           <h3 class="section-title">
@@ -213,19 +211,38 @@
             Review & Confirm
           </h3>
           
-          <!-- Show the actual disease detection result here -->
+          <!-- shows what user selected -->
           <div class="detection-result-card">
             <div class="result-header">
-              <ion-icon 
-                [name]="detectedDisease === 'Unknown' ? 'help-circle' : 'checkmark-circle'" 
-                [class]="detectedDisease === 'Unknown' ? 'unknown-icon' : 'success-icon'">
-              </ion-icon>
+              <h3>Symptoms Selected</h3>
+              <!--
               <h3>{{ detectedDisease || 'Loading...' }}</h3>
               <span 
                 [class]="detectedDisease === 'Unknown' ? 'low-confidence-badge' : 'confidence-badge'">
                 {{ confidence || 0 }}% confidence
               </span>
+              -->
             </div>
+            <div class="selected-symptoms-section" *ngIf="getSelectedPrimarySymptoms().length > 0">
+              <ul class="selected-symptoms-list">
+                <li *ngFor="let symptom of getSelectedPrimarySymptoms()">
+                  <!--<ion-icon name="checkmark-outline"></ion-icon>  -->
+                  <span>{{ symptom }}</span>
+                </li>
+              </ul>
+            </div>
+            <div class="selected-symptoms-section" *ngIf="getSelectedAlternativeSymptoms().length > 0">
+              <h4>Other Symptoms Observed</h4>
+              <ul class="selected-symptoms-list alternative">
+                <li *ngFor="let symptom of getSelectedAlternativeSymptoms()">
+                  <!-- <ion-icon name="checkmark-outline"></ion-icon> -->
+                  <span>{{ symptom }}</span>
+                </li>
+              </ul>
+            </div>
+            <p *ngIf="getSelectedPrimarySymptoms().length === 0 && getSelectedAlternativeSymptoms().length === 0" class="no-symptoms">
+              No symptoms selected
+            </p>
           </div>
           
           <div class="summary-items">
@@ -245,7 +262,7 @@
         </div>
       </div>
 
-      <!-- API Call Failed -->
+      <!-- error message when api fails -->
       <div *ngIf="apiCallFailed" class="step-content">
         <div class="error-section">
           <ion-icon name="alert-circle" class="error-icon"></ion-icon>
@@ -254,9 +271,9 @@
         </div>
       </div>
 
-      <!-- Navigation Buttons -->
+      <!-- buttons for navigation -->
       <div class="navigation-buttons">
-        <!-- Previous/Next buttons in a group when both are visible -->
+        <!-- prev and next buttons together -->
         <div class="nav-button-group" *ngIf="currentStep > 1 && currentStep < totalSteps">
           <ion-button 
             fill="outline" 
@@ -275,7 +292,7 @@
           </ion-button>
         </div>
 
-        <!-- Previous button only (when on final step) -->
+        <!-- back button on last step -->
         <ion-button 
           *ngIf="currentStep === totalSteps && currentStep > 1" 
           fill="outline" 
@@ -285,7 +302,7 @@
           Previous
         </ion-button>
 
-        <!-- Next button only (when on first step) -->
+        <!-- next button on first step only -->
         <ion-button 
           *ngIf="currentStep === 1 && currentStep < totalSteps" 
           [disabled]="!canProceedToNextStep() || isProcessing"
@@ -295,7 +312,7 @@
           <ion-icon slot="end" name="arrow-forward"></ion-icon>
         </ion-button>
         
-        <!-- Confirm & Analyze button -->
+        <!-- final submit button -->
         <ion-button 
           *ngIf="currentStep === totalSteps"
           class="confirm-button" 
@@ -307,7 +324,7 @@
           <span *ngIf="isProcessing">ANALYZING...</span>
         </ion-button>
         
-        <!-- Retake Photo button -->
+        <!-- go back and take new photo -->
         <ion-button class="retake-button" fill="outline" (click)="goBack()">
           <ion-icon slot="start" name="camera-outline"></ion-icon>
           RETAKE PHOTO

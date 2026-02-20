@@ -3,22 +3,21 @@ import { firstValueFrom } from 'rxjs';
 import { PredictionCoreService } from './prediction-core.service';
 
 /**
- * Verify Page Prediction Service
- * Specialized service for the verify page workflow
- * Handles preview and save-with-verification operations
+ * service for verify page stuff
+ * does preview and saves with verification
  */
 @Injectable({
   providedIn: 'root'
 })
 export class VerifyPredictionService extends PredictionCoreService {
 
-  /* Preview prediction */
+  /* just get prediction dont save */
   async previewPrediction(file: File, detectionType: 'fruit' | 'leaf'): Promise<any> {
     try {
       const formData = new FormData();
       formData.append('image', file);
       formData.append('detection_type', detectionType);
-      formData.append('preview_only', 'true'); // Flag to prevent database save
+      formData.append('preview_only', 'true'); // dont save to db yet
       
       console.log('Preview prediction request for:', detectionType);
       
@@ -31,8 +30,7 @@ export class VerifyPredictionService extends PredictionCoreService {
   }
 
   /**
-   * Save prediction with user verification data to admin/database
-   * Used after user confirms the analysis in verify page
+   * save the prediction after user confirms everything
    */
   async savePredictionWithVerification(
     file: File,
@@ -56,15 +54,15 @@ export class VerifyPredictionService extends PredictionCoreService {
       const formData = new FormData();
       formData.append('image', file);
       formData.append('detection_type', detectionType);
-      formData.append('preview_only', 'false'); // Ensure this saves to database
+      formData.append('preview_only', 'false'); // now we actually save
       
-      // Add user verification data
+      // stick in the verification stuff
       formData.append('is_detection_correct', userVerification.isDetectionCorrect.toString());
       if (userVerification.userFeedback) {
         formData.append('user_feedback', userVerification.userFeedback);
       }
       
-      // Add symptoms data if available
+      // symptoms if we got em
       if (userVerification.selectedSymptoms) {
         formData.append('selected_symptoms', JSON.stringify(userVerification.selectedSymptoms));
       }
@@ -84,7 +82,7 @@ export class VerifyPredictionService extends PredictionCoreService {
         formData.append('symptoms_data', JSON.stringify(userVerification.symptomsData));
       }
       
-      // Add location data if available - always save location but track accuracy confirmation
+      // gps stuff - save it but note if they said its accurate
       if (locationData) {
         formData.append('latitude', locationData.latitude.toString());
         formData.append('longitude', locationData.longitude.toString());

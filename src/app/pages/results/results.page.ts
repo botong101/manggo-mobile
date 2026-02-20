@@ -29,9 +29,9 @@ export class ResultsPage implements OnInit {
   isVerified = false;
   verificationResult: boolean | null = null;
 
-  // Confidence threshold for displaying "Unknown"
-  private readonly UNKNOWN_CONFIDENCE_THRESHOLD = 50;
-
+  //threshold para display "Unknown" during result
+  private readonly UNKNOWN_CONFIDENCE_THRESHOLD = 0.0001;
+/*
   indicationsMap: { [key: string]: string[] } = {
     'Anthracnose': [
       'Do you see dark, sunken spots on the leaves or fruits?',
@@ -84,7 +84,7 @@ export class ResultsPage implements OnInit {
       'Are the fruits spoiling from the stem side?'
     ]
   };
-
+*/
   constructor(
     private router: Router,
     private http: HttpClient,
@@ -98,7 +98,7 @@ export class ResultsPage implements OnInit {
     this.image = navState?.image || null;
     this.imageFile = navState?.imageFile || null;
     
-    // Get the pre-processed detection data from verify page
+    // grab the stuff from verify page
     const detectedDisease = navState?.detectedDisease;
     const confidence = navState?.confidence;
     
@@ -109,35 +109,35 @@ export class ResultsPage implements OnInit {
       return;
     }
     
-    // Prioritize processing full result data (which contains top_3_predictions)
+    // try to use the full result first cuz it has all the predictions
     if (this.result && this.result.data && this.result.data.top_3_predictions) {
       this.processResults();
     } else if (detectedDisease && confidence !== undefined && confidence !== null) {
-      // Fallback to using simple pre-processed data
+      // if that doesnt work use the simple data
       this.mainDisease = detectedDisease;
       this.confidenceScore = confidence;
       this.confidenceLevel = this.getConfidenceLevel(confidence);
       this.diseaseInfo = this.getDiseaseInfo(this.mainDisease);
       this.treatment = this.getTreatmentInfo(this.mainDisease);
-      this.isVerified = true; // Show results immediately since user already verified
+      this.isVerified = true; // show stuff right away
       
       
     } else if (this.result) {
-      // Last resort - try to process any available result
+      // last chance, try whatever we got
       this.processResults();
     } else {
-      // No data available at all - but still show the page and let user know
+      // nothing at all lol just show error
       this.mainDisease = 'No Detection Data';
       this.confidenceScore = 0;
       this.confidenceLevel = 'Unknown';
       this.diseaseInfo = 'Unable to load detection results. Please try analyzing again.';
       this.treatment = 'Please retake the photo and try again.';
-      this.isVerified = true; // Show the page anyway
+      this.isVerified = true; // show it anyway
       
       this.showToast('No detection result found. Please analyze a photo first.');
     }
 
-    // Failsafe: Always set verified after 3 seconds to prevent infinite loading
+    // backup timer so it doesnt load forever
     setTimeout(() => {
       if (!this.isVerified) {
         this.isVerified = true;
@@ -154,24 +154,24 @@ export class ResultsPage implements OnInit {
     const predictionData = this.result.data || this.result;
     
     if (predictionData.primary_prediction) {
-      // Extract all the data
-      this.actualDisease = predictionData.primary_prediction.disease; // Store actual disease
+      // get all the data out
+      this.actualDisease = predictionData.primary_prediction.disease; // save disease name
       this.treatment = predictionData.primary_prediction.treatment;
       this.confidenceScore = predictionData.primary_prediction.confidence_score || 0;
       this.savedImageId = predictionData.saved_image_id || 0;
       
-      // Display "Unknown" if confidence is below threshold, otherwise show actual disease
+      // show unknown if its not confident enough
       if (this.confidenceScore < this.UNKNOWN_CONFIDENCE_THRESHOLD) {
         this.mainDisease = 'Unknown';
       } else {
         this.mainDisease = this.actualDisease;
       }
       
-      // Process top 3 predictions
+      // do the top 3
       if (predictionData.top_3_predictions && predictionData.top_3_predictions.length > 0) {
         this.probabilities = predictionData.top_3_predictions.map((pred: any) => ({
           class: pred.confidence < this.UNKNOWN_CONFIDENCE_THRESHOLD ? 'Unknown' : pred.disease,
-          actualClass: pred.disease, // Store actual disease name
+          actualClass: pred.disease, 
           confidence: pred.confidence,
           confidence_formatted: pred.confidence_formatted,
           treatment: pred.treatment,
@@ -190,7 +190,7 @@ export class ResultsPage implements OnInit {
       
       
       
-      // Set as verified since we removed the modal
+      // just set verified no modal anymore
       this.isVerified = true;
       
     } else {
@@ -200,7 +200,7 @@ export class ResultsPage implements OnInit {
       this.probabilities = [];
       this.showToast('Unexpected response format from server.');
       
-      // Even for errors, set as verified to show something
+      // show something even if theres errors
       this.isVerified = true;
     }
   }
@@ -224,7 +224,7 @@ export class ResultsPage implements OnInit {
   }
 
   getTopProbabilities() {
-    // Already sorted by rank from backend, just return first 3
+    // its already sorted just get first 3
     return this.probabilities.slice(0, 3);
   }
 
@@ -247,7 +247,7 @@ export class ResultsPage implements OnInit {
   }
 
   formatConfidence(confidence: number): string {
-    // Confidence from backend is already a percentage number (e.g., 85.67)
+    // backend already gives us percentage
     return `${confidence.toFixed(1)}%`;
   }
 

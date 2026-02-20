@@ -14,7 +14,7 @@ export interface ExifLocationData {
 export interface LocationConsentResult {
   consentGiven: boolean;
   locationData: ExifLocationData | null;
-  locationAccuracyConfirmed?: boolean; // Whether user confirmed the detected location as accurate
+  locationAccuracyConfirmed?: boolean; // did they say the location was right
 }
 
 @Injectable({
@@ -28,12 +28,12 @@ export class ExifLocationService {
   ) {}
 
   /**
-   * Extract GPS coordinates from image EXIF data
+   * pull gps coords out of image exif
    */
   private async extractExifLocation(file: File): Promise<ExifLocationData | null> {
     return new Promise((resolve) => {
       try {
-        // Check if EXIF library is available
+        // make sure exif lib loaded
         if (typeof EXIF === 'undefined') {
           console.warn('EXIF library not available');
           resolve({
@@ -44,7 +44,7 @@ export class ExifLocationService {
           return;
         }
 
-        // Set timeout for EXIF processing
+        // dont wait forever
         const timeout = setTimeout(() => {
           console.warn('EXIF extraction timeout');
           resolve({
@@ -65,7 +65,7 @@ export class ExifLocationService {
             const timestamp = EXIF.getTag(file as any, 'DateTime');
 
             if (lat && lng && latRef && lngRef && Array.isArray(lat) && Array.isArray(lng)) {
-              // Convert GPS coordinates from DMS to decimal degrees
+              // turn dms into decimals
               const latitude = this.convertDMSToDD(lat, latRef);
               const longitude = this.convertDMSToDD(lng, lngRef);
               
@@ -77,7 +77,7 @@ export class ExifLocationService {
                 timestamp: timestamp ? new Date(timestamp) : new Date()
               };
 
-              // Try to get address using reverse geocoding
+              // try to get actual address
               this.reverseGeocode(latitude, longitude)
                 .then(address => {
                   locationData.address = address;
@@ -116,7 +116,7 @@ export class ExifLocationService {
   }
 
   /**
-   * Convert DMS (Degrees, Minutes, Seconds) to Decimal Degrees
+   * turn degrees minutes seconds into decimal
    */
   private convertDMSToDD(dms: number[], ref: string): number {
     let dd = dms[0] + (dms[1] / 60) + (dms[2] / 3600);
@@ -127,7 +127,7 @@ export class ExifLocationService {
   }
 
   /**
-   * Reverse geocode coordinates to address
+   * coords to address
    */
   private async reverseGeocode(lat: number, lng: number): Promise<string> {
     try {
@@ -141,7 +141,7 @@ export class ExifLocationService {
       
       const data = await response.json();
       
-      // Build address string
+      // put address together
       const addressParts = [];
       if (data.locality) addressParts.push(data.locality);
       if (data.principalSubdivision) addressParts.push(data.principalSubdivision);
@@ -156,29 +156,29 @@ export class ExifLocationService {
   }
 
   /**
-   * Show location consent popup and handle EXIF extraction
+   * ask for location permission and get exif
    */
   async requestLocationConsentWithExif(imageFile: File): Promise<LocationConsentResult> {
     try {
       
-      // TEMPORARY: Skip EXIF extraction due to library issues
-      // TODO: Fix EXIF library issue and re-enable
+      // skip exif for now its broken
+      // TODO fix it later
       
-      /* COMMENTED OUT UNTIL EXIF LIBRARY ISSUE IS FIXED
+      /* commenting out til exif works
       // First extract EXIF location data
       const exifLocation = await this.extractExifLocation(imageFile);
       
 
       // If no GPS data in EXIF, return early
       if (!exifLocation || !exifLocation.hasGps) {
-        // Don't show toast for this - it's normal for many images
+        // no toast needed lots of pics dont have gps
         return {
           consentGiven: false,
           locationData: null
         };
       }
 
-      // Show consent popup with the extracted location
+      // show the popup with location
       const consent = await this.showLocationConsentAlert(exifLocation);
       
       return {
@@ -187,7 +187,7 @@ export class ExifLocationService {
       };
       */
 
-      // Return no location data for now
+      // just return nothing for now
       return {
         consentGiven: false,
         locationData: null
@@ -195,7 +195,7 @@ export class ExifLocationService {
 
     } catch (error) {
       console.error('Error in location consent process:', error);
-      // Don't show toast for EXIF errors - just continue without location
+      // whatever just continue without location
       return {
         consentGiven: false,
         locationData: null
@@ -204,7 +204,7 @@ export class ExifLocationService {
   }
 
   /**
-   * Show location consent alert
+   * popup asking bout location
    */
   private async showLocationConsentAlert(locationData: ExifLocationData): Promise<boolean> {
     return new Promise(async (resolve) => {
@@ -246,7 +246,7 @@ export class ExifLocationService {
   }
 
   /**
-   * Show toast message
+   * show lil message
    */
   private async showToast(message: string, color: 'success' | 'warning' | 'danger' = 'danger') {
     const toast = await this.toastCtrl.create({
@@ -259,7 +259,7 @@ export class ExifLocationService {
   }
 
   /**
-   * Format location for display
+   * make location look nice
    */
   formatLocationForDisplay(location: ExifLocationData): string {
     if (!location.hasGps) return 'No location data';

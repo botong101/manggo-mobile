@@ -21,7 +21,7 @@
 
 <ion-content class="home-content">
   <div class="content-wrapper">
-    <!-- Welcome Section with Enhanced Design -->
+    <!-- welcome greeting at the top -->
     <div class="greeting-section">
       <div class="greeting-background"></div>
       <div class="greeting-content">
@@ -59,14 +59,14 @@
       </div>
     </div>
 
-    <!-- Enhanced Action Buttons Section -->
+    <!-- main buttons for scanning -->
     <div class="action-section">
       <div class="section-header">
         <h3 class="section-title">Analyze Your Mango</h3>
         <p class="section-subtitle">Get instant disease detection results with AI-powered analysis</p>
       </div>
       
-      <!-- Detection Type Selection (hide when selectedDetectionType is set) -->
+      <!-- choose leaf or fruit detection -->
       <div class="card-row" *ngIf="!selectedDetectionType">
         <ion-card class="detection-card" (click)="selectDetectionType('leaf')">
           <ion-card-content>
@@ -91,7 +91,7 @@
         </ion-card>
       </div>
 
-      <!-- Enhanced Selection Badge Section -->
+      <!-- shows what user picked -->
       <div class="selection-badge" *ngIf="selectedDetectionType">
         <div class="selection-status">
           <div class="status-card" [class.fruit-status]="selectedDetectionType === 'fruit'">
@@ -120,7 +120,7 @@
         </div>
       </div>
 
-      <!-- Action Buttons (only show when detection type is selected) -->
+      <!-- camera and import buttons -->
       <div class="action-buttons" *ngIf="selectedDetectionType">
         <ion-button expand="block" class="primary-button photo-button" (click)="importPhoto()">
           <div class="button-icon-wrapper">
@@ -145,7 +145,7 @@
         </ion-button>
       </div>
      
-      <!-- Quick Tip -->
+      <!-- helpful tip -->
       <div class="quick-tip">
         <ion-icon name="bulb-outline" class="tip-icon"></ion-icon>
         <span>Pro Tip: Take photos in good lighting for better results</span>
@@ -213,7 +213,7 @@
     </div>
   -->
 
-    <!-- Weather Widget -->
+    <!-- weather info widget -->
      <!--
         <div class="weather-widget" *ngIf="weatherData">
       <div class="weather-header">

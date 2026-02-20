@@ -5,8 +5,6 @@ import { PredictionCoreService } from './prediction-core.service';
 export interface UserConfirmation {
   imageId?: number;
   image_id?: number;
-  isCorrect?: boolean;
-  is_correct?: boolean;
   actualDisease?: string;
   predicted_disease?: string;
   feedback?: string;

@@ -1,10 +1,10 @@
 /**
- * LEGACY API Service - Backward Compatibility Wrapper
+ * OLD api service - just wraps new stuff
  * 
- * This file is maintained for backward compatibility.
- * New code should use the specialized services from /services/prediction/
+ * keeping this so old code doesnt break
+ * use the new services from /services/prediction/ instead
  * 
- * @deprecated Use VerifyPredictionService, StandardPredictionService, or ConfirmationService instead
+ * @deprecated use VerifyPredictionService or StandardPredictionService
  */
 
 import { Injectable } from '@angular/core';
@@ -18,7 +18,7 @@ import {
   UserConfirmation
 } from './prediction';
 
-// Re-export types for backward compatibility
+// export these so old imports still work
 export { LocationData, ApiResponse, UserConfirmation } from './prediction';
 
 @Injectable({
@@ -31,7 +31,7 @@ export class ApiService {
     private confirmationService: ConfirmationService
   ) {}
 
-  /** @deprecated Use StandardPredictionService.predictImageWithLocation() instead */
+  /** @deprecated dont use this - use StandardPredictionService.predictImageWithLocation() */
   async predictImageWithLocation(
     file: File, 
     detectionType: 'fruit' | 'leaf',
@@ -41,17 +41,17 @@ export class ApiService {
     return this.standardService.predictImageWithLocation(file, detectionType, exifLocationData, locationConsentGiven);
   }
 
-  /** @deprecated Use StandardPredictionService.predictImage() instead */
+  /** @deprecated use StandardPredictionService.predictImage() now */
   predictImage(file: File, detectionType: 'fruit' | 'leaf'): Observable<any> {
     return this.standardService.predictImage(file, detectionType);
   }
 
-  /** @deprecated Use VerifyPredictionService.previewPrediction() instead */
+  /** @deprecated switched to VerifyPredictionService.previewPrediction() */
   async previewPrediction(file: File, detectionType: 'fruit' | 'leaf'): Promise<any> {
     return this.verifyService.previewPrediction(file, detectionType);
   }
 
-  /** @deprecated Use VerifyPredictionService.savePredictionWithVerification() instead */
+  /** @deprecated moved to VerifyPredictionService.savePredictionWithVerification() */
   async savePredictionWithVerification(
     file: File,
     detectionType: 'fruit' | 'leaf',
@@ -78,7 +78,7 @@ export class ApiService {
     );
   }
 
-  /** @deprecated Use ConfirmationService.saveConfirmation() instead */
+  /** @deprecated now its ConfirmationService.saveConfirmation() */
   saveConfirmation(confirmation: UserConfirmation): Observable<any> {
     return this.confirmationService.saveConfirmation(confirmation);
   }

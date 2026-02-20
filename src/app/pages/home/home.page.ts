@@ -20,13 +20,13 @@ export class HomePage implements OnInit {
   selectedDetectionType: string | null = null;
   selectedImageFile: any = null;
   
-  // Statistics
+  // stats stuff
   totalAnalyses: number = 0;
   healthyCount: number = 0;
   diseaseCount: number = 0;
   recentAnalysesCount: number = 0;
   
-  // Weather data (mock for now)
+  // weather (fake for now)
   weatherData: any = null;
 
   constructor(
@@ -46,7 +46,7 @@ export class HomePage implements OnInit {
   }
 
   ionViewWillEnter() {
-    // Reset all data to ensure fresh state
+    // clear everything and reload
     this.resetPageData();
     this.handleRefreshParams();
     this.loadUserData();
@@ -56,12 +56,12 @@ export class HomePage implements OnInit {
   }
 
   private handleRefreshParams() {
-    // Check for refresh query parameter to ensure fresh data loading
+    // if refresh param exists clear stuff
     this.route.queryParams.subscribe(params => {
       if (params['refresh']) {
-        // Force clear any cached data
+        // wipe cached stuff
         this.resetPageData();
-        // Remove the refresh parameter from URL after handling
+        // remove param from url cuz ugly
         this.router.navigate([], {
           relativeTo: this.route,
           queryParams: { refresh: null },
@@ -73,20 +73,20 @@ export class HomePage implements OnInit {
   }
 
   private resetPageData() {
-    // Reset all component data to initial state
+    // clear everything
     this.selectedDetectionType = null;
     this.selectedImageFile = null;
     
-    // Reset statistics
+    // zero out stats
     this.totalAnalyses = 0;
     this.healthyCount = 0;
     this.diseaseCount = 0;
     this.recentAnalysesCount = 0;
     
-    // Reset weather data
+    // clear weather
     this.weatherData = null;
     
-    // Clear any temporary analysis data from localStorage that might persist
+    // delete temp stuff from storage
     const tempKeys = ['tempImageData', 'lastAnalysis', 'analysisResult', 'selectedImage', 'predictionData'];
     tempKeys.forEach(key => {
       if (localStorage.getItem(key)) {
@@ -96,7 +96,7 @@ export class HomePage implements OnInit {
     
   }
 
-  // Public method to force refresh from external components
+  // other components can call this to refresh
   public forceRefresh() {
     this.resetPageData();
     this.loadUserData();
@@ -114,7 +114,7 @@ export class HomePage implements OnInit {
   }
 
   private loadUserData() {
-    // Check for both old and new localStorage keys
+    // try both old and new storage keys
     const userData = localStorage.getItem('userInfo') || localStorage.getItem('user_data');
     const authToken = localStorage.getItem('accessToken') || localStorage.getItem('auth_token');
     
@@ -135,7 +135,7 @@ export class HomePage implements OnInit {
         this.userName = 'User';
       }
     } else {
-      // Fallback to userName stored directly
+      // no user data, check simple name
       const storedUserName = localStorage.getItem('userName');
       if (storedUserName) {
         this.userName = storedUserName;
@@ -157,7 +157,7 @@ export class HomePage implements OnInit {
   }
 
   private loadStatistics() {
-    // Load from localStorage or API
+    // get from storage or api
     const stats = localStorage.getItem('analysis_stats');
     if (stats) {
       try {
@@ -173,7 +173,7 @@ export class HomePage implements OnInit {
   }
 
   private loadWeatherData() {
-    // Mock weather data - replace with actual API call
+    // fake weather data - todo use real api later
     this.weatherData = {
       temperature: 28,
       description: 'Partly Cloudy',
@@ -199,7 +199,7 @@ export class HomePage implements OnInit {
   }
 
   async openProfile() {
-    // Navigate to profile or open modal
+    // go to profile page
     this.router.navigate(['/folder/Settings']);
   }
 
@@ -317,7 +317,7 @@ export class HomePage implements OnInit {
     this.http.post(`${environment.apiUrl}/predict/`, formData).subscribe({
       next: (response) => {
         this.showToast('Prediction successful!', 'success');
-        // Handle response as needed
+        // do something with response
       },
       error: (err) => {
         this.showToast('Prediction failed.', 'danger');

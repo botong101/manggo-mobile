@@ -17,7 +17,6 @@ export class AppComponent implements OnInit {
     { title: 'Home', url: 'pages/home', icon: 'home', badge: null },
     { title: 'Analysis History', url: '/folder/History', icon: 'time', badge: null },
     { title: 'Disease Reports', url: '/folder/Reports', icon: 'bar-chart', badge: 'New' },
-    { title: 'Growing Tips', url: '/folder/Tips', icon: 'bulb', badge: null },
     { title: 'Settings', url: '/folder/Settings', icon: 'settings', badge: null },
     { title: 'Help & Support', url: '/folder/Help', icon: 'help-circle', badge: null }
   ];

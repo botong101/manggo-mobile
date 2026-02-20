@@ -21,8 +21,6 @@ export interface ApiResponse<T> {
 export interface UserConfirmation {
   imageId?: number;
   image_id?: number;
-  isCorrect?: boolean;
-  is_correct?: boolean;
   actualDisease?: string;
   predicted_disease?: string;
   feedback?: string;

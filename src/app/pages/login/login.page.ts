@@ -45,7 +45,7 @@ export class LoginPage implements OnInit {
   }
 
 
-  // Add this method that your HTML template is calling
+  // this does the login
   async login() {
     this.loginForm.markAllAsTouched();
 
@@ -55,7 +55,7 @@ export class LoginPage implements OnInit {
     }
 
     if (this.isSubmitting) {
-      return; // Prevent multiple submissions
+      return; // dont let them spam the button
     }
 
     this.isSubmitting = true;
@@ -79,7 +79,7 @@ export class LoginPage implements OnInit {
           this.isSubmitting = false;
           
           if (response.success) {
-            // Store JWT tokens
+            // save the tokens
             if (response.access) {
               localStorage.setItem('accessToken', response.access);
             }
@@ -91,7 +91,7 @@ export class LoginPage implements OnInit {
               localStorage.setItem('userName', response.user.firstName + ' ' + response.user.lastName);
             }
             
-            // Set the isLoggedIn flag that AuthGuard checks for
+            // this is what auth guard looks for
             localStorage.setItem('isLoggedIn', 'true');
             
             this.showToast('Login successful!', 'success');
@@ -130,7 +130,7 @@ export class LoginPage implements OnInit {
   }
 
   async onSubmit() {
-    // Call the login method for form submission
+    // just call login
     await this.login();
   }
 
@@ -172,7 +172,7 @@ export class LoginPage implements OnInit {
     }
   }
 
-  // Add this method to your login component or create an auth service
+  // clear everything and go back to login
   logout() {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');

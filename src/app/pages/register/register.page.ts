@@ -41,7 +41,6 @@ export class RegisterPage implements OnInit {
       province: ['', Validators.required],
       city: ['', Validators.required],
       barangay: ['', Validators.required],
-      postalCode: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(6)]],
       confirmPassword: ['', [Validators.required]],
@@ -55,10 +54,10 @@ export class RegisterPage implements OnInit {
     });
   }
   ionViewWillEnter() {
-    this.menuController.enable(false); // Ensure menu is hidden when entering this page
+    this.menuController.enable(false); // no menu here
   }
   ionViewWillLeave() {
-    this.menuController.enable(true); // Re-enable menu when leaving register page
+    this.menuController.enable(true); // bring menu back
   }
 
   passwordMatchValidator(form: FormGroup) {
@@ -105,15 +104,14 @@ export class RegisterPage implements OnInit {
       });
 
       const formValue = this.registerForm.value;
-      // Use the network IP of your backend server instead of localhost for devices on the same network
-      const apiUrl = `http://127.0.0.1:8000/api/register/`; // Replace 127.0.0.1 with your server's actual LAN IP
+      // make sure this is your actual server ip not localhost
+      const apiUrl = environment.apiUrl + '/register/';
       const registerData = {
         first_name: formValue.firstName,
         last_name: formValue.lastName,
         province: formValue.province,
         city: formValue.city,
         barangay: formValue.barangay,
-        postal_code: formValue.postalCode,
         email: formValue.email,
         password: formValue.password
       };
@@ -124,7 +122,7 @@ export class RegisterPage implements OnInit {
           this.isSubmitting = false;
           
           if (response.success) {
-            // Store JWT tokens
+            // save jwt stuff
             if (response.access) {
               localStorage.setItem('accessToken', response.access);
             }
@@ -133,14 +131,14 @@ export class RegisterPage implements OnInit {
             }
             if (response.user) {
               localStorage.setItem('userInfo', JSON.stringify(response.user));
-              // Also store userName for compatibility
+              // save name too just in case
               const fullName = `${response.user.firstName || ''} ${response.user.lastName || ''}`.trim();
               localStorage.setItem('userName', fullName || response.user.email || 'User');
             }
             
             this.showToast('Account created successfully!', 'success');
             
-            // Navigate to home since user is now logged in with tokens
+            // go to home they got their tokens
             this.router.navigate(['/pages/home']);
           } else {
             this.showToast(response.message || 'Registration failed');
@@ -156,10 +154,10 @@ export class RegisterPage implements OnInit {
           if (err.status === 0) {
             errorMessage = 'Cannot connect to server. Please check server connection.';
           } else if (err.error && err.error.errors) {
-            // Handle multiple validation errors from your Django backend
+            // bunch of errors from django
             if (Array.isArray(err.error.errors)) {
               errorMessage = err.error.errors.join('\n• ');
-              errorMessage = '• ' + errorMessage; // Add bullet point to first error
+              errorMessage = '• ' + errorMessage; // add bullet
             } else {
               errorMessage = err.error.errors;
             }

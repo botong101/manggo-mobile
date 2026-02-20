@@ -5,8 +5,8 @@ import { catchError, tap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 
 /**
- * Core Prediction Service
- * Handles basic HTTP communication and authentication for all prediction-related operations
+ * base service for prediction stuff
+ * other services extend this one
  */
 @Injectable({
   providedIn: 'root'
@@ -17,7 +17,7 @@ export class PredictionCoreService {
   constructor(protected http: HttpClient) {}
 
   /**
-   * Get authentication headers with token
+   * get headers with token
    */
   protected getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
@@ -25,7 +25,7 @@ export class PredictionCoreService {
   }
 
   /**
-   * Basic prediction request - used as foundation for other services
+   * basic predict call - other stuff uses this
    */
   protected predictImageRequest(formData: FormData): Observable<any> {
     const headers = this.getAuthHeaders();
@@ -38,7 +38,7 @@ export class PredictionCoreService {
   }
 
   /**
-   * Centralized error handling for all prediction requests
+   * deal with errors
    */
   protected handleError(error: HttpErrorResponse) {
     let errorMessage = 'An unknown error occurred!';
@@ -46,7 +46,7 @@ export class PredictionCoreService {
     if (error.error instanceof ErrorEvent) {
       errorMessage = `Error: ${error.error.message}`;
     } else {
-      // Try to extract the message from different possible structures
+      // try to find message somewhere in there
       if (error.error?.message) {
         errorMessage = error.error.message;
       } else if (error.error?.errors && Array.isArray(error.error.errors) && error.error.errors.length > 0) {
