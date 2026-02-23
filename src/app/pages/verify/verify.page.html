@@ -25,17 +25,17 @@
           <div class="step-circle">1</div>
           <span>Symptoms</span>
         </div>
-        <div class="step-line" [class.active]="currentStep > 1"></div>
+        <div [class.active]="currentStep > 1"></div>
         <div class="step-item" [class.active]="currentStep >= 2" [class.completed]="currentStep > 2">
           <div class="step-circle">2</div>
           <span>Location</span>
         </div>
-        <div class="step-line" [class.active]="currentStep > 2"></div>
+        <div [class.active]="currentStep > 2"></div>
         <div class="step-item" [class.active]="currentStep >= 3" [class.completed]="currentStep > 3">
           <div class="step-circle">3</div>
           <span>Comments</span>
         </div>
-        <div class="step-line" [class.active]="currentStep > 3"></div>
+        <div [class.active]="currentStep > 3"></div>
         <div class="step-item" [class.active]="currentStep >= 4">
           <div class="step-circle">4</div>
           <span>Confirm</span>
@@ -140,27 +140,100 @@
       <!-- step 2 - location stuff -->
       <div *ngIf="currentStep == 2" class="step-content">
         <div class="location-section">
-          <h3 class="section-title">
-            <ion-icon name="location-outline"></ion-icon>
-            Location Information
-          </h3>
           <p class="section-subtitle">Please confirm if this detected location is accurate</p>
           
-          <div class="location-info-card">
-            <div class="location-details">
-              <h4>Detected Location</h4>
-              <div class="detected-location" *ngIf="detectedLocation">
-                <p class="location-address">{{ detectedLocation.address || 'Loading address...' }}</p>
-                <p class="location-coordinates">
-                  {{ detectedLocation.latitude | number:'1.4-4' }}, {{ detectedLocation.longitude | number:'1.4-4' }}
-                </p>
-                <p class="location-source">Source: {{ detectedLocation.source | titlecase }}</p>
-              </div>
-              <div class="no-location" *ngIf="!detectedLocation">
-                <p class="location-address">No location data found in image</p>
-                <p class="location-note">Your device location will be used if available</p>
+          
+          <!-- Leaflet srcdoc iframe map with disease markers + disease buttons -->
+          <div class="map-wrapper" *ngIf="detectedLocation" [class.map-fullscreen]="isMapFullscreen">
+
+            <!-- toolbar: address + open-external only (no toggle here to avoid header overlap) -->
+            <div class="map-toolbar">
+              <span class="map-address">
+                <ion-icon name="location"></ion-icon>
+                {{ detectedLocation.address }}
+              </span>
+              <div class="map-actions">
+                <button class="map-action-btn" (click)="openMapExternal()" aria-label="Open in OpenStreetMap">
+                  <ion-icon name="open-outline"></ion-icon>
+                </button>
+                <!-- Expand button only shown in normal mode; fullscreen exit is the bottom FAB -->
+                <button class="map-action-btn" *ngIf="!isMapFullscreen"
+                  (click)="toggleMapFullscreen()" aria-label="Fullscreen">
+                  <ion-icon name="expand-outline"></ion-icon>
+                </button>
               </div>
             </div>
+
+            <!-- srcdoc iframe: Leaflet is loaded inside it from CDN; markers are part of the HTML -->
+            <iframe
+              *ngIf="mapSrcdoc"
+              [srcdoc]="mapSrcdoc"
+              class="osm-iframe"
+              frameborder="0"
+              allowfullscreen
+              title="Detected location map">
+            </iframe>
+
+            <!-- disease-location query buttons -->
+            <div class="map-disease-buttons">
+              <button
+                class="map-disease-btn similar"
+                (click)="showSimilarDisease()"
+                [disabled]="isLoadingLocations"
+                [class.active]="activeDiseaseFilter === 'similar'">
+                <span>Show Similar Disease Near Me</span>
+              </button>
+
+              <button
+                class="map-disease-btn all"
+                (click)="showAllDiseases()"
+                [disabled]="isLoadingLocations"
+                [class.active]="activeDiseaseFilter === 'all'">
+                <span>Show All Detected Disease Near Me</span>
+              </button>
+
+              <button
+                class="map-disease-btn clear"
+                (click)="clearDiseaseMarkers()"
+                [disabled]="isLoadingLocations || activeDiseaseFilter === null">
+                <span>Clear</span>
+              </button>
+            </div>
+
+            <!--
+              Exit FAB – positioned at the BOTTOM-RIGHT of the fullscreen overlay,
+              far from the ion-header so it is always tappable.
+            -->
+            <button
+              class="map-exit-fab"
+              *ngIf="isMapFullscreen"
+              (click)="toggleMapFullscreen()"
+              aria-label="Exit fullscreen">
+              <ion-icon name="contract-outline"></ion-icon>
+            </button>
+
+          </div>
+
+          <!-- disease location results list (rendered outside the iframe wrapper) -->
+          <div class="disease-locations-list" *ngIf="diseaseLocations.length > 0">
+            <div class="disease-list-header">
+              <ion-icon [name]="activeDiseaseFilter === 'similar' ? 'git-branch-outline' : 'earth-outline'"></ion-icon>
+              <span>{{ diseaseLocations.length }} location(s) found</span>
+            </div>
+            <div class="disease-location-item" *ngFor="let loc of diseaseLocations">
+              <div class="disease-loc-main">
+                <span class="disease-name">{{ loc.disease }}</span>
+              </div>
+              <div class="disease-loc-addr">
+                <ion-icon name="location-outline"></ion-icon>
+                <span>{{ loc.address || 'Unknown location' }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="no-location-map" *ngIf="!detectedLocation">
+            <ion-icon name="map-outline"></ion-icon>
+            <p>Map unavailable — no location data was found</p>
           </div>
 
           <div class="radio-group">

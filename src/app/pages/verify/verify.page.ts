@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { environment } from '../../../environments/environment';
 import { VerifyPredictionService } from 'src/app/services/prediction';
 import { ExifLocationService, LocationConsentResult } from 'src/app/services/exif-location.service';
@@ -58,6 +59,15 @@ export class VerifyPage implements OnInit {
   // where they are
   detectedLocation: any = null;
 
+  // iframe map (srcdoc – self-contained Leaflet HTML so markers work)
+  mapSrcdoc: SafeHtml | null = null;
+  isMapFullscreen = false;
+
+  // disease location results
+  isLoadingLocations = false;
+  activeDiseaseFilter: 'similar' | 'all' | null = null;
+  diseaseLocations: any[] = [];
+
   constructor(
     private router: Router,
     private http: HttpClient,
@@ -67,8 +77,159 @@ export class VerifyPage implements OnInit {
     private exifLocationService: ExifLocationService,
     // our helpers
     private symptomsService: VerifySymptomsService,
-    private detectionService: VerifyDetectionService
+    private detectionService: VerifyDetectionService,
+    private sanitizer: DomSanitizer
   ) {}
+
+  /** Escape a string for use inside a JS single-quoted string literal */
+  private escapeJs(s: string): string {
+    return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/</g, '\\x3c').replace(/\r?\n/g, ' ');
+  }
+
+  /**
+   * Build a self-contained Leaflet HTML page and bind it to the iframe via srcdoc.
+   * Called on first location detect and again whenever disease markers change.
+   */
+  buildMapSrcdoc(
+    diseaseLocations: any[] = [],
+    filterType: 'similar' | 'all' | null = null
+  ) {
+    if (!this.detectedLocation) { this.mapSrcdoc = null; return; }
+
+    const lat = this.detectedLocation.latitude;
+    const lng = this.detectedLocation.longitude;
+    const addr = this.escapeJs(this.detectedLocation.address || '');
+
+    // ── current-location marker (green) ──────────────────────────
+    let markersJs = `
+      var curIcon = L.divIcon({
+        html: '<div style="width:18px;height:18px;background:#457800;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',
+        className:'', iconSize:[18,18], iconAnchor:[9,9], popupAnchor:[0,-12]
+      });
+      L.marker([${lat},${lng}],{icon:curIcon})
+        .bindPopup('<b>Your location</b><br>${addr}')
+        .addTo(map);
+    `;
+
+    // ── disease markers ───────────────────────────────────────────
+    const boundsArr: number[][] = [[lat, lng]];
+    if (diseaseLocations.length > 0) {
+      const color = filterType === 'similar' ? '#e67e00' : '#1a73e8';
+      diseaseLocations.forEach(loc => {
+        const name    = this.escapeJs(loc.disease || 'Unknown');
+        const locAddr = this.escapeJs(loc.address  || 'Unknown location');
+        const conf    = loc.confidence != null
+          ? ` (${this.formatConfidence(loc.confidence)}%)` : '';
+        markersJs += `
+          var dIcon${boundsArr.length} = L.divIcon({
+            html: '<div style="width:16px;height:16px;background:${color};border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',
+            className:'', iconSize:[16,16], iconAnchor:[8,8], popupAnchor:[0,-10]
+          });
+          L.marker([${loc.latitude},${loc.longitude}],{icon:dIcon${boundsArr.length}})
+            .bindPopup('<b>${name}${this.escapeJs(conf)}</b><br>${locAddr}')
+            .addTo(map);
+        `;
+        boundsArr.push([loc.latitude, loc.longitude]);
+      });
+      // fit map to show all markers
+      markersJs += `map.fitBounds(${JSON.stringify(boundsArr)},{padding:[30,30]});`;
+    }
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body,#map{width:100%;height:100%}
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    var map = L.map('map').setView([${lat},${lng}],14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'&copy; OpenStreetMap contributors',maxZoom:19
+    }).addTo(map);
+    ${markersJs}
+  </script>
+</body>
+</html>`;
+
+    this.mapSrcdoc = this.sanitizer.bypassSecurityTrustHtml(html);
+  }
+
+  toggleMapFullscreen() {
+    this.isMapFullscreen = !this.isMapFullscreen;
+  }
+
+  openMapExternal() {
+    if (!this.detectedLocation) return;
+    const { latitude: lat, longitude: lng } = this.detectedLocation;
+    window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`, '_blank');
+  }
+
+  /** Show markers for detections that share the same primary disease */
+  async showSimilarDisease() {
+    if (!this.detectedDisease || this.detectedDisease === 'Unknown') {
+      this.showToast('No disease detected to compare against.', 'warning');
+      return;
+    }
+    this.isLoadingLocations = true;
+    try {
+      const url = `${environment.apiUrl}/disease-locations/similar/?disease=${encodeURIComponent(this.detectedDisease)}`;
+      const resp: any = await this.http.get(url).toPromise();
+      this.diseaseLocations = resp?.data?.locations ?? [];
+      this.activeDiseaseFilter = 'similar';
+      this.buildMapSrcdoc(this.diseaseLocations, 'similar');
+      if (this.diseaseLocations.length === 0) {
+        this.showToast('No similar disease locations found.', 'warning');
+      } else {
+        this.showToast(`Found ${this.diseaseLocations.length} similar disease location(s).`, 'success');
+      }
+    } catch (err) {
+      this.showToast('Failed to load disease locations.', 'danger');
+    } finally {
+      this.isLoadingLocations = false;
+    }
+  }
+
+  /** Show all stored disease detections */
+  async showAllDiseases() {
+    this.isLoadingLocations = true;
+    try {
+      const url = `${environment.apiUrl}/disease-locations/all/`;
+      const resp: any = await this.http.get(url).toPromise();
+      this.diseaseLocations = resp?.data?.locations ?? [];
+      this.activeDiseaseFilter = 'all';
+      this.buildMapSrcdoc(this.diseaseLocations, 'all');
+      if (this.diseaseLocations.length === 0) {
+        this.showToast('No disease locations recorded yet.', 'warning');
+      } else {
+        this.showToast(`Found ${this.diseaseLocations.length} detection(s).`, 'success');
+      }
+    } catch (err) {
+      this.showToast('Failed to load disease locations.', 'danger');
+    } finally {
+      this.isLoadingLocations = false;
+    }
+  }
+
+  /** Clear disease location results and reset map to just current location */
+  clearDiseaseMarkers() {
+    this.diseaseLocations = [];
+    this.activeDiseaseFilter = null;
+    this.buildMapSrcdoc(); // rebuild with only the current-location pin
+  }
+
+  /** Format confidence for display */
+  formatConfidence(val: number | null): number {
+    if (val == null) return 0;
+    return Math.round(val <= 1 ? val * 100 : val);
+  }
   
   // setup the big symptoms arrays after we got em
   private initializeUnifiedSymptoms() {
@@ -104,6 +265,7 @@ export class VerifyPage implements OnInit {
       this.isDetectionCorrect = 'true';
     }
   }
+
   ngOnInit() {
     // empty array for now, fill it later
     this.allSelectedSymptoms = [];
@@ -286,6 +448,7 @@ export class VerifyPage implements OnInit {
         const deviceLocation = await this.getCurrentDeviceLocation();
         if (deviceLocation) {
           this.detectedLocation = deviceLocation;
+          this.buildMapSrcdoc();
           this.showToast(`Location detected: ${deviceLocation.address.split(',')[0]}`, 'success');
         }
       } catch (error) {
@@ -428,13 +591,13 @@ export class VerifyPage implements OnInit {
   // go forward or back thru wizard
   nextStep() {
     if (this.currentStep < this.totalSteps) {
-      this.currentStep++;
+      this.currentStep = (this.currentStep + 1) as 1 | 2 | 3 | 4;
     }
   }
 
   previousStep() {
     if (this.currentStep > 1) {
-      this.currentStep--;
+      this.currentStep = (this.currentStep - 1) as 1 | 2 | 3 | 4;
     }
   }
 
