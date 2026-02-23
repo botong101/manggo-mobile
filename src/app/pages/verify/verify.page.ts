@@ -68,6 +68,10 @@ export class VerifyPage implements OnInit {
   activeDiseaseFilter: 'similar' | 'all' | null = null;
   diseaseLocations: any[] = [];
 
+  // gate validation — did the backend say its not a mango?
+  gateRejected = false;
+  gateRejectionMessage = '';
+
   constructor(
     private router: Router,
     private http: HttpClient,
@@ -313,6 +317,34 @@ export class VerifyPage implements OnInit {
         (this.detectionType as 'fruit' | 'leaf')
       );
 
+      // =====================================================
+      // GATE VALIDATION CHECK
+      // If the backend gate model says this isn't a mango
+      // leaf/fruit, stop here and tell the user
+      // =====================================================
+      const gateValidation = this.detectionResult?.data?.gate_validation;
+      if (gateValidation && gateValidation.passed === false) {
+        this.gateRejected = true;
+        this.apiCallFailed = true;
+        this.gateRejectionMessage = `This is not a mango ${this.detectionType}`;
+        this.detectedDisease = `Not a Mango ${this.detectionType === 'fruit' ? 'Fruit' : 'Leaf'}`;
+        this.confidence = 0;
+        this.symptoms = [];
+        this.topDiseases = [];
+        this.alternativeSymptoms = [];
+        this.selectedSymptoms = [];
+        this.selectedAlternativeSymptoms = [];
+        this.initializeUnifiedSymptoms();
+        await loading.dismiss();
+        this.showToast(
+          `This is not a mango ${this.detectionType}. Please upload a valid image.`,
+          'warning'
+        );
+        return;
+      }
+
+      // gate passed (or no gate model) — proceed with disease results
+
       // grab top 3 diseases
       if (this.detectionResult.data && this.detectionResult.data.predictions) {
         this.topDiseases = this.detectionResult.data.predictions.slice(0, 3);
@@ -401,6 +433,8 @@ export class VerifyPage implements OnInit {
       // setup the big arrays
       this.initializeUnifiedSymptoms();
       
+      this.gateRejected = false;
+      this.gateRejectionMessage = '';
       this.apiCallFailed = false; // yay it worked
       
       

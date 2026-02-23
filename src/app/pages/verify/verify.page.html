@@ -1,4 +1,4 @@
-﻿<ion-header>
+﻿﻿<ion-header>
   <ion-toolbar class="toolbar">
     <ion-buttons slot="start">
       <ion-menu-button class="menu-button"></ion-menu-button>
@@ -48,7 +48,7 @@
       <h2 class="page-title">{{ getStepTitle() }}</h2>
       
       <div class="image-container">
-        <div class="image-placeholder">
+        <div class="image-placeholder" [class.has-error]="apiCallFailed && gateRejected">
           <img *ngIf="imageData" [src]="imageData" alt="Preview" class="preview-image" />
           <div *ngIf="!imageData" class="placeholder-content">
             <ion-icon name="image-outline"></ion-icon>
@@ -335,19 +335,52 @@
         </div>
       </div>
 
-      <!-- error message when api fails -->
-      <div *ngIf="apiCallFailed" class="step-content">
-        <div class="error-section">
-          <ion-icon name="alert-circle" class="error-icon"></ion-icon>
-          <h3>Analysis Failed</h3>
-          <p>Unable to analyze the image. Please try taking another photo.</p>
+      <!-- GATE REJECTED — image is not a mango leaf/fruit -->
+      <div *ngIf="apiCallFailed && gateRejected" class="step-content">
+        <div class="error-section gate-rejected">
+          <div class="error-icon-container">
+            <div class="error-pulse"></div>
+            <ion-icon name="close-circle" class="error-icon gate-icon"></ion-icon>
+          </div>
+          <h3 class="error-title">Not a Mango {{ detectionType === 'fruit' ? 'Fruit' : 'Leaf' }}</h3>
+          <p class="error-message">{{ gateRejectionMessage }}</p>
+          <div class="gate-hint">
+            <div class="hint-icon-wrapper">
+              <ion-icon name="information-circle-outline"></ion-icon>
+            </div>
+            <div class="hint-content">
+              <h4>Tips for better results:</h4>
+              <ul>
+                <li>Ensure the photo clearly shows a mango {{ detectionType }}</li>
+                <li>Use good lighting (natural light works best)</li>
+                <li>Minimize background clutter</li>
+                <li>Keep the {{ detectionType }} in focus</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- generic error message when api fails (not gate) -->
+      <div *ngIf="apiCallFailed && !gateRejected" class="step-content">
+        <div class="error-section general-error">
+          <div class="error-icon-container">
+            <div class="error-pulse warning"></div>
+            <ion-icon name="alert-circle" class="error-icon"></ion-icon>
+          </div>
+          <h3 class="error-title">Analysis Failed</h3>
+          <p class="error-message">Unable to analyze the image. Please try taking another photo.</p>
+          <div class="error-hint">
+            <ion-icon name="refresh-circle-outline"></ion-icon>
+            <span>This might be a temporary issue. Please try again.</span>
+          </div>
         </div>
       </div>
 
       <!-- buttons for navigation -->
       <div class="navigation-buttons">
         <!-- prev and next buttons together -->
-        <div class="nav-button-group" *ngIf="currentStep > 1 && currentStep < totalSteps">
+        <div class="nav-button-group" *ngIf="currentStep > 1 && currentStep < totalSteps && !apiCallFailed">
           <ion-button 
             fill="outline" 
             (click)="previousStep()"
@@ -367,7 +400,7 @@
 
         <!-- back button on last step -->
         <ion-button 
-          *ngIf="currentStep === totalSteps && currentStep > 1" 
+          *ngIf="currentStep === totalSteps && currentStep > 1 && !apiCallFailed" 
           fill="outline" 
           (click)="previousStep()"
           [disabled]="isProcessing">
@@ -377,7 +410,7 @@
 
         <!-- next button on first step only -->
         <ion-button 
-          *ngIf="currentStep === 1 && currentStep < totalSteps" 
+          *ngIf="currentStep === 1 && currentStep < totalSteps && !apiCallFailed" 
           [disabled]="!canProceedToNextStep() || isProcessing"
           (click)="nextStep()"
           class="next-button">
@@ -387,7 +420,7 @@
         
         <!-- final submit button -->
         <ion-button 
-          *ngIf="currentStep === totalSteps"
+          *ngIf="currentStep === totalSteps && !apiCallFailed"
           class="confirm-button" 
           expand="block" 
           (click)="confirm()"
@@ -397,7 +430,7 @@
           <span *ngIf="isProcessing">ANALYZING...</span>
         </ion-button>
         
-        <!-- go back and take new photo -->
+        <!-- go back and take new photo — always visible -->
         <ion-button class="retake-button" fill="outline" (click)="goBack()">
           <ion-icon slot="start" name="camera-outline"></ion-icon>
           RETAKE PHOTO
