@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
@@ -57,6 +57,7 @@ export class FolderPage implements OnInit {
   private currentLocation: { lat: number; lng: number } | null = null;
 
   private activatedRoute = inject(ActivatedRoute);
+  private router = inject(Router);
   private http = inject(HttpClient);
   private sanitizer = inject(DomSanitizer);
 
@@ -65,6 +66,11 @@ export class FolderPage implements OnInit {
   ngOnInit() {
     this.routeSub = this.activatedRoute.paramMap.subscribe((params) => {
       this.folder = params.get('id') ?? '';
+
+      if (this.folder === 'History') {
+        this.router.navigate(['/pages/history']);
+        return;
+      }
 
       if (this.folder === 'Reports') {
         this.loadDiseaseHeatmap();

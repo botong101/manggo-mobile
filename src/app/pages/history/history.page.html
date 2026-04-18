@@ -11,38 +11,91 @@
     </ion-toolbar>
   </ion-header>
 
-  <div class="history-header">
-    <ion-icon name="time-outline" class="history-icon"></ion-icon>
-    <h2>Your Recent Analyses</h2>
-    <p class="history-description">Review your previous mango disease detections and results.</p>
-  </div>
-
-  <ion-spinner *ngIf="isLoading" name="crescent" class="center-spinner"></ion-spinner>
-
-  <ion-list *ngIf="!isLoading && analysisHistory.length > 0" class="history-list">
-    <ion-item *ngFor="let item of analysisHistory" class="history-item" lines="none">
-      <ion-avatar slot="start" class="history-avatar">
-        <ion-icon name="leaf-outline"></ion-icon>
-      </ion-avatar>
-      <ion-label>
-        <div class="history-row">
-          <h3 class="history-date">{{ item.date | date:'mediumDate' }}</h3>
-          <ion-badge class="history-badge" [color]="item.result === 'Positive' ? 'danger' : 'success'">
-            {{ item.result }}
-          </ion-badge>
+  <div class="history-shell">
+    <div class="history-header">
+      <div class="history-header-copy">
+        <ion-icon name="time-outline" class="history-icon"></ion-icon>
+        <div>
+          <h2>Your Analysis History</h2>
+          <p class="history-description">Only your own uploaded mango analyses are shown here.</p>
         </div>
-        <p class="history-details">{{ item.details }}</p>
-      </ion-label>
-      <ion-icon slot="end" name="chevron-forward-outline" class="chevron-icon"></ion-icon>
-    </ion-item>
-  </ion-list>
+      </div>
 
-  <div *ngIf="!isLoading && analysisHistory.length === 0 && !error" class="empty-history">
-    <ion-icon name="document-outline" class="empty-icon"></ion-icon>
-    <p>No analysis history found.</p>
-  </div>
-  <div *ngIf="error" class="error-message">
-    <ion-icon name="alert-circle-outline" class="error-icon"></ion-icon>
-    {{ error }}
+      <ion-button fill="outline" size="small" class="refresh-btn" (click)="refreshHistory()" [disabled]="isLoading">
+        <ion-icon name="refresh-outline" slot="start"></ion-icon>
+        Refresh
+      </ion-button>
+    </div>
+
+    <div class="history-summary" *ngIf="!isLoading && !error">
+      <div class="summary-card">
+        <span>Total</span>
+        <strong>{{ summary.total }}</strong>
+      </div>
+      <div class="summary-card healthy">
+        <span>Healthy</span>
+        <strong>{{ summary.healthy }}</strong>
+      </div>
+      <div class="summary-card diseased">
+        <span>Diseased</span>
+        <strong>{{ summary.diseased }}</strong>
+      </div>
+    </div>
+
+    <div class="loading-state" *ngIf="isLoading">
+      <ion-spinner name="crescent"></ion-spinner>
+      <p>Loading your analysis history...</p>
+    </div>
+
+    <div *ngIf="!isLoading && analysisHistory.length > 0" class="history-list">
+      <article *ngFor="let item of analysisHistory" class="history-item">
+        <div class="history-item-top">
+          <div class="history-avatar" [class.healthy]="item.is_healthy" [class.diseased]="!item.is_healthy">
+            <ion-icon [name]="getStatusIcon(item)"></ion-icon>
+          </div>
+          <div class="history-item-main">
+            <div class="history-row">
+              <h3>{{ item.date | date:'mediumDate' }}</h3>
+              <ion-badge [color]="getStatusColor(item)">{{ item.result }}</ion-badge>
+            </div>
+            <p class="history-title">{{ item.disease }}</p>
+            <p class="history-details">{{ item.details }}</p>
+          </div>
+        </div>
+
+        <div class="history-meta">
+          <div>
+            <span>File</span>
+            <strong>{{ item.filename }}</strong>
+          </div>
+          <div>
+            <span>Confidence</span>
+            <strong>{{ getConfidenceLabel(item.confidence) }}</strong>
+          </div>
+          <div>
+            <span>Location</span>
+            <strong>{{ item.location_address || 'Not provided' }}</strong>
+          </div>
+        </div>
+
+        <div class="history-tags">
+          <ion-chip *ngIf="item.is_verified" color="primary">Verified</ion-chip>
+          <ion-chip *ngIf="item.confirmed_correct === true" color="success">Confirmed correct</ion-chip>
+          <ion-chip *ngIf="item.confirmed_correct === false" color="danger">Marked incorrect</ion-chip>
+          <ion-chip *ngIf="item.disease_type">{{ item.disease_type }}</ion-chip>
+        </div>
+      </article>
+    </div>
+
+    <div *ngIf="!isLoading && analysisHistory.length === 0 && !error" class="empty-history">
+      <ion-icon name="document-outline" class="empty-icon"></ion-icon>
+      <h3>No analysis history yet</h3>
+      <p>Your future detections will appear here after you run an analysis while signed in.</p>
+    </div>
+
+    <div *ngIf="error" class="error-message">
+      <ion-icon name="alert-circle-outline" class="error-icon"></ion-icon>
+      <p>{{ error }}</p>
+    </div>
   </div>
 </ion-content>

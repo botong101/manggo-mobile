@@ -1,13 +1,57 @@
 <ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>heatmap</ion-title>
+  <ion-toolbar class="hub-toolbar">
+    <ion-title>Disease Risk Hub</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
+<ion-content [fullscreen]="true" class="heatmap-content">
   <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">heatmap</ion-title>
+    <ion-toolbar class="hub-toolbar">
+      <ion-title size="large">Disease Risk Hub</ion-title>
     </ion-toolbar>
   </ion-header>
+
+  <div class="hub-shell">
+    <section class="hero-card">
+      <div class="hero-copy">
+        <span class="eyebrow">Prevention first</span>
+        <h1>See disease pressure before it spreads.</h1>
+        <p>
+          Open the live disease report heatmap to check nearby hotspots, or review your own
+          analysis history to spot recurring problems in your trees.
+        </p>
+      </div>
+
+      <div class="hero-actions">
+        <ion-button expand="block" class="primary-action" (click)="openReports()">
+          <ion-icon name="map-outline" slot="start"></ion-icon>
+          Open Disease Reports
+        </ion-button>
+        <ion-button expand="block" fill="outline" class="secondary-action" (click)="openHistory()">
+          <ion-icon name="time-outline" slot="start"></ion-icon>
+          View My Analysis History
+        </ion-button>
+      </div>
+    </section>
+
+    <section class="hub-grid">
+      <article class="hub-card">
+        <ion-icon name="flame-outline"></ion-icon>
+        <h2>Heatmap overview</h2>
+        <p>Hotter areas mean more recorded disease detections, helping you assess nearby risk.</p>
+      </article>
+
+      <article class="hub-card">
+        <ion-icon name="shield-checkmark-outline"></ion-icon>
+        <h2>Early prevention</h2>
+        <p>Use the map and your own record history to act before a disease spreads through the orchard.</p>
+      </article>
+
+      <article class="hub-card">
+        <ion-icon name="document-text-outline"></ion-icon>
+        <h2>Personal history</h2>
+        <p>Only your own analyses appear in the history page, so you can track your mango trees over time.</p>
+      </article>
+    </section>
+  </div>
 </ion-content>
