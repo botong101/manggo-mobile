@@ -1,6 +1,6 @@
 <ion-app>
   <ion-split-pane contentId="main-content">
-    <ion-menu *ngIf="isLoggedIn" contentId="main-content" type="overlay" class="mangosense-menu">
+    <ion-menu *ngIf="isLoggedIn" contentId="main-content" type="overlay" class="mangosense-menu" (ionWillOpen)="onMenuWillOpen()">
       <ion-header>
         <ion-toolbar class="menu-header">
           <div class="menu-logo-section">
@@ -18,7 +18,8 @@
           <div class="user-section">
             <ion-item lines="none" class="user-info">
               <ion-avatar slot="start">
-                <ion-icon name="person-circle-outline"></ion-icon>
+                <img *ngIf="userAvatar" [src]="userAvatar" alt="Profile photo" class="menu-user-avatar" />
+                <ion-icon *ngIf="!userAvatar" name="person-circle-outline"></ion-icon>
               </ion-avatar>
               <ion-label>
                 <h3>Welcome Back!</h3>

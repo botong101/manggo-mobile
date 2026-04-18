@@ -105,6 +105,7 @@ export class FolderPage implements OnInit {
   public isHistoryLoading = false;
   public historyError = '';
   public selectedHistoryId: number | null = null;
+  public profilePhotoDataUrl: string | null = null;
   public profileSettings: ProfileSettingsState = {
     firstName: '',
     lastName: '',
@@ -138,6 +139,7 @@ export class FolderPage implements OnInit {
   ngOnInit() {
     this.routeSub = this.activatedRoute.paramMap.subscribe((params) => {
       this.folder = params.get('id') ?? '';
+      this.loadProfilePhotoFromStorage();
 
       if (this.folder === 'History') {
         this.loadAnalysisHistory();
@@ -199,7 +201,12 @@ export class FolderPage implements OnInit {
   }
 
   async saveProfileSettings(): Promise<void> {
-    localStorage.setItem('profileSettings', JSON.stringify(this.profileSettings));
+    const profileSettingsToSave = {
+      ...this.profileSettings,
+      profilePhoto: this.profilePhotoDataUrl,
+    };
+
+    localStorage.setItem('profileSettings', JSON.stringify(profileSettingsToSave));
 
     const userInfoRaw = localStorage.getItem('userInfo');
     if (userInfoRaw) {
@@ -213,6 +220,7 @@ export class FolderPage implements OnInit {
           province: this.profileSettings.province,
           city: this.profileSettings.city,
           barangay: this.profileSettings.barangay,
+          profilePhoto: this.profilePhotoDataUrl,
         };
         localStorage.setItem('userInfo', JSON.stringify(merged));
       } catch {
@@ -226,6 +234,53 @@ export class FolderPage implements OnInit {
     }
 
     await this.presentToast('Profile settings saved.');
+  }
+
+  triggerProfilePhotoPicker(fileInput: HTMLInputElement): void {
+    fileInput.click();
+  }
+
+  async onProfilePhotoSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const selectedFile = input.files?.[0];
+
+    if (!selectedFile) {
+      return;
+    }
+
+    if (!selectedFile.type.startsWith('image/')) {
+      await this.presentToast('Please select a valid image file.');
+      input.value = '';
+      return;
+    }
+
+    const maxFileSizeBytes = 5 * 1024 * 1024;
+    if (selectedFile.size > maxFileSizeBytes) {
+      await this.presentToast('Image is too large. Please choose one under 5MB.');
+      input.value = '';
+      return;
+    }
+
+    try {
+      this.profilePhotoDataUrl = await this.readFileAsDataUrl(selectedFile);
+      await this.presentToast('Profile picture updated. Tap Save Profile Settings to keep it.');
+    } catch {
+      await this.presentToast('Failed to load selected image. Please try another file.');
+    } finally {
+      input.value = '';
+    }
+  }
+
+  async removeProfilePhoto(): Promise<void> {
+    this.profilePhotoDataUrl = null;
+    await this.presentToast('Profile picture removed. Tap Save Profile Settings to keep it.');
+  }
+
+  getProfileInitials(): string {
+    const firstInitial = (this.profileSettings.firstName || '').trim().charAt(0);
+    const lastInitial = (this.profileSettings.lastName || '').trim().charAt(0);
+    const initials = `${firstInitial}${lastInitial}`.trim().toUpperCase();
+    return initials || 'MS';
   }
 
   async onNotificationToggle(field: keyof NotificationSettingsState, checked: boolean): Promise<void> {
@@ -344,6 +399,7 @@ export class FolderPage implements OnInit {
     const userInfoRaw = localStorage.getItem('userInfo');
 
     let fromUserInfo: Partial<ProfileSettingsState> = {};
+    let fromUserPhoto: string | null = null;
     if (userInfoRaw) {
       try {
         const userInfo = JSON.parse(userInfoRaw);
@@ -355,14 +411,19 @@ export class FolderPage implements OnInit {
           city: userInfo.city || '',
           barangay: userInfo.barangay || '',
         };
+        fromUserPhoto = userInfo.profilePhoto || userInfo.profile_image || null;
       } catch {
         fromUserInfo = {};
+        fromUserPhoto = null;
       }
     }
 
     if (savedProfileRaw) {
       try {
         const saved = JSON.parse(savedProfileRaw);
+        const savedPhoto = saved.profilePhoto || null;
+        this.profilePhotoDataUrl = savedPhoto || fromUserPhoto;
+
         this.profileSettings = {
           firstName: saved.firstName ?? fromUserInfo.firstName ?? '',
           lastName: saved.lastName ?? fromUserInfo.lastName ?? '',
@@ -377,6 +438,8 @@ export class FolderPage implements OnInit {
       }
     }
 
+    this.profilePhotoDataUrl = fromUserPhoto;
+
     this.profileSettings = {
       firstName: fromUserInfo.firstName ?? '',
       lastName: fromUserInfo.lastName ?? '',
@@ -385,6 +448,34 @@ export class FolderPage implements OnInit {
       city: fromUserInfo.city ?? '',
       barangay: fromUserInfo.barangay ?? ''
     };
+  }
+
+  private loadProfilePhotoFromStorage(): void {
+    const savedProfileRaw = localStorage.getItem('profileSettings');
+    if (savedProfileRaw) {
+      try {
+        const saved = JSON.parse(savedProfileRaw);
+        if (saved.profilePhoto) {
+          this.profilePhotoDataUrl = saved.profilePhoto;
+          return;
+        }
+      } catch {
+        // Ignore malformed data and fall back to userInfo.
+      }
+    }
+
+    const userInfoRaw = localStorage.getItem('userInfo');
+    if (userInfoRaw) {
+      try {
+        const userInfo = JSON.parse(userInfoRaw);
+        this.profilePhotoDataUrl = userInfo.profilePhoto || userInfo.profile_image || null;
+      } catch {
+        this.profilePhotoDataUrl = null;
+      }
+      return;
+    }
+
+    this.profilePhotoDataUrl = null;
   }
 
   private loadNotificationSettings(): void {
@@ -913,6 +1004,27 @@ export class FolderPage implements OnInit {
     } catch {
       return 'Time unavailable';
     }
+  }
+
+  private readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === 'string') {
+          resolve(result);
+          return;
+        }
+        reject(new Error('Invalid image data'));
+      };
+
+      reader.onerror = () => {
+        reject(new Error('File read failed'));
+      };
+
+      reader.readAsDataURL(file);
+    });
   }
 
   private escapeJs(value: string): string {

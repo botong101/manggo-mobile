@@ -21,6 +21,7 @@ import { VerifyDetectionService } from './services/verify-detection.service';
   styleUrls: ['./verify.page.scss'],
 })
 export class VerifyPage implements OnInit {
+  userAvatar: string = '';
   imageData: string | null = null;
   detectionType: string | null = null;
   isProcessing = false;
@@ -84,6 +85,32 @@ export class VerifyPage implements OnInit {
     private detectionService: VerifyDetectionService,
     private sanitizer: DomSanitizer
   ) {}
+
+  ionViewWillEnter() {
+    this.loadUserAvatar();
+  }
+
+  private loadUserAvatar(): void {
+    const profileSettingsRaw = localStorage.getItem('profileSettings');
+    if (profileSettingsRaw) {
+      try {
+        const profileSettings = JSON.parse(profileSettingsRaw);
+        this.userAvatar = profileSettings.profilePhoto || '';
+      } catch {
+        this.userAvatar = '';
+      }
+    }
+
+    const userData = localStorage.getItem('userInfo') || localStorage.getItem('user_data');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        this.userAvatar = user.profilePhoto || user.profile_image || user.avatar || user.profileImage || this.userAvatar || '';
+      } catch {
+        // keep fallback avatar value
+      }
+    }
+  }
 
   /** Escape a string for use inside a JS single-quoted string literal */
   private escapeJs(s: string): string {
@@ -271,6 +298,8 @@ export class VerifyPage implements OnInit {
   }
 
   ngOnInit() {
+    this.loadUserAvatar();
+
     // empty array for now, fill it later
     this.allSelectedSymptoms = [];
     

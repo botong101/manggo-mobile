@@ -7,7 +7,12 @@
       <img src="assets/logo-name.png" alt="Mangosense Logo" class="logo-name" />
     </div>
     <ion-buttons slot="end">
-      <ion-icon name="person-circle-outline" class="profile-icon"></ion-icon>
+      <div class="toolbar-avatar" *ngIf="userAvatar; else verifyDefaultAvatar">
+        <img [src]="userAvatar" alt="Profile photo" class="toolbar-avatar-image" />
+      </div>
+      <ng-template #verifyDefaultAvatar>
+        <ion-icon name="person-circle-outline" class="profile-icon"></ion-icon>
+      </ng-template>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>

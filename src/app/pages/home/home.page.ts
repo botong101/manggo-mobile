@@ -114,10 +114,18 @@ export class HomePage implements OnInit {
   }
 
   private loadUserData() {
+    const profileSettingsRaw = localStorage.getItem('profileSettings');
+    if (profileSettingsRaw) {
+      try {
+        const profileSettings = JSON.parse(profileSettingsRaw);
+        this.userAvatar = profileSettings.profilePhoto || '';
+      } catch {
+        this.userAvatar = '';
+      }
+    }
+
     // try both old and new storage keys
     const userData = localStorage.getItem('userInfo') || localStorage.getItem('user_data');
-    const authToken = localStorage.getItem('accessToken') || localStorage.getItem('auth_token');
-    
     
     if (userData) {
       try {
@@ -130,7 +138,7 @@ export class HomePage implements OnInit {
                        user.displayName ||
                        'User';
         
-        this.userAvatar = user.avatar || user.profileImage || '';
+        this.userAvatar = user.profilePhoto || user.profile_image || user.avatar || user.profileImage || this.userAvatar || '';
       } catch (error) {
         this.userName = 'User';
       }

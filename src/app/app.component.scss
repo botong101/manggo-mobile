@@ -70,6 +70,15 @@ $shadow: rgba(0, 0, 0, 0.1);
       ion-avatar {
         width: 48px;
         height: 48px;
+
+        .menu-user-avatar {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 50%;
+          border: 2px solid rgba(69, 120, 0, 0.25);
+          display: block;
+        }
         
         ion-icon {
           font-size: 48px;

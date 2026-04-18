@@ -13,6 +13,7 @@ import { LocationData } from 'src/app/services/prediction';
   styleUrls: ['./results.page.scss'],
 })
 export class ResultsPage implements OnInit {
+  userAvatar: string = '';
   result: any = null;
   image: string | null = null;
   imageFile: File | null = null;
@@ -93,6 +94,7 @@ export class ResultsPage implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.loadUserAvatar();
     const navState = window.history.state;
     this.result = navState?.result || null;
     this.image = navState?.image || null;
@@ -143,6 +145,32 @@ export class ResultsPage implements OnInit {
         this.isVerified = true;
       }
     }, 3000);
+  }
+
+  ionViewWillEnter() {
+    this.loadUserAvatar();
+  }
+
+  private loadUserAvatar(): void {
+    const profileSettingsRaw = localStorage.getItem('profileSettings');
+    if (profileSettingsRaw) {
+      try {
+        const profileSettings = JSON.parse(profileSettingsRaw);
+        this.userAvatar = profileSettings.profilePhoto || '';
+      } catch {
+        this.userAvatar = '';
+      }
+    }
+
+    const userData = localStorage.getItem('userInfo') || localStorage.getItem('user_data');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        this.userAvatar = user.profilePhoto || user.profile_image || user.avatar || user.profileImage || this.userAvatar || '';
+      } catch {
+        // keep fallback avatar value
+      }
+    }
   }
 
   processResults() {

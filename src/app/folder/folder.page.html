@@ -7,7 +7,12 @@
       <img src="assets/logo-name.png" alt="Mangosense Logo" class="logo-name" />
     </div>
     <ion-buttons slot="end">
-      <ion-icon name="person-circle-outline" class="profile-icon"></ion-icon>
+      <div class="toolbar-avatar" *ngIf="profilePhotoDataUrl; else toolbarDefaultAvatar">
+        <img [src]="profilePhotoDataUrl" alt="Profile photo" class="toolbar-avatar-image" />
+      </div>
+      <ng-template #toolbarDefaultAvatar>
+        <ion-icon name="person-circle-outline" class="profile-icon"></ion-icon>
+      </ng-template>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -251,6 +256,39 @@
               <div>
                 <h3>Profile Settings</h3>
                 <p>Update your account details used across the app.</p>
+              </div>
+            </div>
+
+            <div class="profile-photo-section">
+              <div class="profile-photo-preview" *ngIf="profilePhotoDataUrl; else profileInitialAvatar">
+                <img [src]="profilePhotoDataUrl" alt="Profile picture preview" class="profile-photo-image" />
+              </div>
+              <ng-template #profileInitialAvatar>
+                <div class="profile-photo-placeholder">{{ getProfileInitials() }}</div>
+              </ng-template>
+
+              <div class="profile-photo-actions">
+                <input
+                  #profilePhotoInput
+                  type="file"
+                  accept="image/*"
+                  class="hidden-photo-input"
+                  (change)="onProfilePhotoSelected($event)" />
+
+                <ion-button fill="outline" size="small" (click)="triggerProfilePhotoPicker(profilePhotoInput)">
+                  <ion-icon name="image-outline" slot="start"></ion-icon>
+                  Change Photo
+                </ion-button>
+
+                <ion-button
+                  fill="clear"
+                  size="small"
+                  color="medium"
+                  *ngIf="profilePhotoDataUrl"
+                  (click)="removeProfilePhoto()">
+                  <ion-icon name="trash-outline" slot="start"></ion-icon>
+                  Remove
+                </ion-button>
               </div>
             </div>
 

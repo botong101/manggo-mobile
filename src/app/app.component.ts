@@ -31,7 +31,21 @@ export class AppComponent implements OnInit {
     this.updateTimeGreeting();
   }
 
+  onMenuWillOpen(): void {
+    this.loadUserData();
+  }
+
   private loadUserData() {
+    const profileSettingsRaw = localStorage.getItem('profileSettings');
+    if (profileSettingsRaw) {
+      try {
+        const profileSettings = JSON.parse(profileSettingsRaw);
+        this.userAvatar = profileSettings.profilePhoto || '';
+      } catch {
+        this.userAvatar = '';
+      }
+    }
+
     // Check for both old and new localStorage keys, just like home.page.ts
     const userData = localStorage.getItem('userInfo') || localStorage.getItem('user_data');
     if (userData) {
@@ -43,7 +57,7 @@ export class AppComponent implements OnInit {
                         user.username ||
                         user.displayName ||
                         'User';
-        this.userAvatar = user.avatar || user.profileImage || '';
+        this.userAvatar = user.profilePhoto || user.profile_image || user.avatar || user.profileImage || this.userAvatar || '';
       } catch (error) {
         console.error('Error parsing user data:', error);
         this.userName = 'User';
