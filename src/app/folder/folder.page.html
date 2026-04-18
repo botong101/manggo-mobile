@@ -82,6 +82,81 @@
           </ion-card-content>
         </ion-card>
       </div>
+
+      <div class="reports-heatmap-panel">
+        <div class="reports-heatmap-header">
+          <div class="reports-heatmap-title-wrap">
+            <ion-icon name="flame-outline"></ion-icon>
+            <div>
+              <h2>Disease Risk Heatmap</h2>
+              <p>See nearby existing disease hotspots so you can act early and protect your trees.</p>
+            </div>
+          </div>
+
+          <ion-button
+            fill="outline"
+            size="small"
+            class="refresh-btn"
+            (click)="refreshDiseaseHeatmap()"
+            [disabled]="isHeatmapLoading">
+            <ion-icon name="refresh-outline" slot="start"></ion-icon>
+            Refresh
+          </ion-button>
+        </div>
+
+        <div class="reports-map-loading" *ngIf="isHeatmapLoading">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Loading disease hotspot map...</span>
+        </div>
+
+        <div class="reports-map-error" *ngIf="!isHeatmapLoading && heatmapError">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <p>{{ heatmapError }}</p>
+        </div>
+
+        <div class="reports-map-wrapper" *ngIf="!isHeatmapLoading && heatmapSrcdoc">
+          <iframe
+            class="reports-map-frame"
+            [srcdoc]="heatmapSrcdoc"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            title="Disease risk heatmap">
+          </iframe>
+        </div>
+
+        <div class="reports-insights-grid" *ngIf="!isHeatmapLoading && diseaseLocations.length > 0">
+          <div class="insight-card">
+            <h3>Most Reported Diseases</h3>
+            <div class="insight-list" *ngIf="topDiseaseCounts.length > 0; else emptyTopDiseases">
+              <div class="insight-item" *ngFor="let entry of topDiseaseCounts">
+                <span>{{ entry.disease }}</span>
+                <strong>{{ entry.count }} case(s)</strong>
+              </div>
+            </div>
+            <ng-template #emptyTopDiseases>
+              <p class="insight-empty">No disease data available yet.</p>
+            </ng-template>
+          </div>
+
+          <div class="insight-card">
+            <h3>Nearby Prevention Alerts</h3>
+            <div class="nearby-list" *ngIf="nearbyDiseases.length > 0; else noNearbyDiseases">
+              <div class="nearby-item" *ngFor="let nearby of nearbyDiseases">
+                <div class="nearby-item-head">
+                  <span class="nearby-disease">{{ nearby.disease }}</span>
+                  <span class="nearby-distance">{{ nearby.distanceKm | number:'1.1-1' }} km away</span>
+                </div>
+                <p class="nearby-tip">{{ getPreventionTip(nearby.disease) }}</p>
+              </div>
+            </div>
+            <ng-template #noNearbyDiseases>
+              <p class="insight-empty">
+                Enable location access to see nearby disease alerts and prevention guidance.
+              </p>
+            </ng-template>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- settings page stuff -->
