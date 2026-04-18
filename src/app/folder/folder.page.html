@@ -22,30 +22,131 @@
       </div>
       <p class="section-description">View your previous mango disease detections and results</p>
       
-      <div class="feature-cards">
-        <ion-card class="feature-card">
-          <ion-card-content>
-            <ion-icon name="document-text-outline"></ion-icon>
-            <h3>Recent Analyses</h3>
-            <p>View your last 10 disease detections</p>
-          </ion-card-content>
-        </ion-card>
-        
-        <ion-card class="feature-card">
-          <ion-card-content>
-            <ion-icon name="calendar-outline"></ion-icon>
-            <h3>Date Filter</h3>
-            <p>Filter results by specific dates</p>
-          </ion-card-content>
-        </ion-card>
-        
-        <ion-card class="feature-card">
-          <ion-card-content>
-            <ion-icon name="download-outline"></ion-icon>
-            <h3>Export Data</h3>
-            <p>Download your analysis history</p>
-          </ion-card-content>
-        </ion-card>
+      <div class="history-panel">
+        <div class="history-toolbar">
+          <div class="history-info">
+            <span class="history-count">{{ analysisHistory.length }} record(s)</span>
+          </div>
+          <ion-button
+            fill="outline"
+            size="small"
+            class="refresh-btn"
+            (click)="loadAnalysisHistory()"
+            [disabled]="isHistoryLoading">
+            <ion-icon name="refresh-outline" slot="start"></ion-icon>
+            Refresh
+          </ion-button>
+        </div>
+
+        <div class="history-loading" *ngIf="isHistoryLoading">
+          <ion-spinner name="crescent"></ion-spinner>
+          <span>Loading your analysis history...</span>
+        </div>
+
+        <div class="history-error" *ngIf="!isHistoryLoading && historyError">
+          <ion-icon name="alert-circle-outline"></ion-icon>
+          <p>{{ historyError }}</p>
+        </div>
+
+        <div class="history-list" *ngIf="!isHistoryLoading && analysisHistory.length > 0; else emptyHistory">
+          <div 
+            class="history-item" 
+            *ngFor="let record of analysisHistory; let i = index" 
+            [ngClass]="getHistoryItemCssClass(record.disease)"
+            [class.expanded]="selectedHistoryId === record.id"
+            (click)="toggleHistoryItemDetails(record.id)">
+            <div class="history-item-badge" [class]="'disease-badge-' + getHistoryItemCssClass(record.disease).split('-').slice(1).join('-')"></div>
+            <div class="history-item-content">
+              <div class="history-item-head">
+                <div class="disease-info">
+                  <h3>{{ record.disease }}</h3>
+                  <span class="confidence-badge" [class.high-confidence]="record.confidence >= 0.85" [class.med-confidence]="record.confidence >= 0.70 && record.confidence < 0.85" [class.low-confidence]="record.confidence < 0.70">{{ (record.confidence * 100) | number:'1.0-0' }}% confidence</span>
+                </div>
+                <ion-icon 
+                  class="expand-icon" 
+                  [name]="selectedHistoryId === record.id ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+              </div>
+              <div class="history-item-meta">
+                <div class="meta-row">
+                  <div class="meta-item">
+                    <ion-icon name="calendar-outline"></ion-icon>
+                    <span>{{ record.uploaded_at ? (record.uploaded_at | date:'MMM dd, yyyy') : 'Date unavailable' }}</span>
+                  </div>
+                  <div class="meta-item">
+                    <ion-icon name="time-outline"></ion-icon>
+                    <span>{{ record.uploaded_at ? (record.uploaded_at | date:'HH:mm:ss') : 'Time unavailable' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Expanded Details Section -->
+              <div class="history-item-details" *ngIf="selectedHistoryId === record.id">
+                <div class="details-header">
+                  <div class="disease-badge-large" [style.borderColor]="getDiseaseColor(record.disease)">
+                    <ion-icon [name]="getDiseaseIcon(record.disease)" [style.color]="getDiseaseColor(record.disease)"></ion-icon>
+                    <div>
+                      <p class="badge-label">Detected Disease</p>
+                      <h4>{{ record.disease }}</h4>
+                    </div>
+                  </div>
+                  <div class="confidence-large" [class.high-confidence]="record.confidence >= 0.85" [class.med-confidence]="record.confidence >= 0.70 && record.confidence < 0.85" [class.low-confidence]="record.confidence < 0.70">
+                    <span class="confidence-value">{{ (record.confidence * 100) | number:'1.0-0' }}%</span>
+                    <span class="confidence-label">model confidence</span>
+                  </div>
+                </div>
+
+                <div class="details-grid">
+                  <div class="detail-item">
+                    <span class="detail-label">Analysis Date</span>
+                    <span class="detail-value">{{ getFormattedDate(record.uploaded_at) }}</span>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-label">Analysis Time</span>
+                    <span class="detail-value">{{ getFormattedTime(record.uploaded_at) }}</span>
+                  </div>
+                </div>
+
+                <div *ngIf="record.notes" class="details-notes">
+                  <span class="detail-label">Notes</span>
+                  <p>{{ record.notes }}</p>
+                </div>
+
+                <div class="details-actions">
+                  <ion-button size="small" fill="outline" class="action-btn">
+                    <ion-icon name="download-outline" slot="start"></ion-icon>
+                    Export Result
+                  </ion-button>
+                  <ion-button size="small" fill="outline" class="action-btn">
+                    <ion-icon name="share-social-outline" slot="start"></ion-icon>
+                    Share
+                  </ion-button>
+                </div>
+              </div>
+
+              <div *ngIf="record.notes && selectedHistoryId !== record.id" class="history-item-notes">
+                <ion-icon name="document-text-outline"></ion-icon>
+                <p>{{ record.notes }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #emptyHistory>
+          <div class="history-empty" *ngIf="!isHistoryLoading">
+            <div class="empty-icon-wrapper">
+              <ion-icon name="document-outline"></ion-icon>
+            </div>
+            <h3>No analysis history yet</h3>
+            <p>You haven't analyzed any mango trees yet. Start your first detection to build your disease tracking record.</p>
+            <div class="empty-actions">
+              <ion-button fill="solid" class="primary-btn" (click)="goToHome()">
+                <ion-icon name="camera-outline" slot="start"></ion-icon>
+                Start Your First Analysis
+              </ion-button>
+              <p class="hint-text">Capture a clear photo of a mango leaf or fruit to get started</p>
+            </div>
+          </div>
+        </ng-template>
       </div>
     </div>
 
@@ -55,7 +156,7 @@
         <ion-icon name="bar-chart-outline" class="section-icon"></ion-icon>
         <h1>Disease Reports</h1>
       </div>
-      <p class="section-description">Generate and view detailed reports of your mango health assessments</p>
+      <p class="section-description">Heatmap and Nearby Prevention Alerts</p>
       
 
       <div class="reports-heatmap-panel">
@@ -141,29 +242,154 @@
         <h1>App Settings</h1>
       </div>
       <p class="section-description">Configure your Mangosense preferences and account settings</p>
-      
-      <div class="feature-cards">
-        <ion-card class="feature-card">
+
+      <div class="settings-grid">
+        <ion-card class="settings-card profile-settings-card">
           <ion-card-content>
-            <ion-icon name="person-outline"></ion-icon>
-            <h3>Profile Settings</h3>
-            <p>Update your personal information</p>
+            <div class="settings-card-head">
+              <ion-icon name="person-outline"></ion-icon>
+              <div>
+                <h3>Profile Settings</h3>
+                <p>Update your account details used across the app.</p>
+              </div>
+            </div>
+
+            <div class="profile-form-grid">
+              <ion-item lines="none" class="settings-item">
+                <ion-label position="stacked">First Name</ion-label>
+                <ion-input
+                  [value]="profileSettings.firstName"
+                  (ionInput)="updateProfileField('firstName', $any($event.target).value || '')"
+                  placeholder="Enter first name">
+                </ion-input>
+              </ion-item>
+
+              <ion-item lines="none" class="settings-item">
+                <ion-label position="stacked">Last Name</ion-label>
+                <ion-input
+                  [value]="profileSettings.lastName"
+                  (ionInput)="updateProfileField('lastName', $any($event.target).value || '')"
+                  placeholder="Enter last name">
+                </ion-input>
+              </ion-item>
+
+              <ion-item lines="none" class="settings-item">
+                <ion-label position="stacked">Email</ion-label>
+                <ion-input
+                  type="email"
+                  [value]="profileSettings.email"
+                  (ionInput)="updateProfileField('email', $any($event.target).value || '')"
+                  placeholder="Enter email">
+                </ion-input>
+              </ion-item>
+
+              <ion-item lines="none" class="settings-item">
+                <ion-label position="stacked">Province</ion-label>
+                <ion-input
+                  [value]="profileSettings.province"
+                  (ionInput)="updateProfileField('province', $any($event.target).value || '')"
+                  placeholder="Enter province">
+                </ion-input>
+              </ion-item>
+
+              <ion-item lines="none" class="settings-item">
+                <ion-label position="stacked">City / Municipality</ion-label>
+                <ion-input
+                  [value]="profileSettings.city"
+                  (ionInput)="updateProfileField('city', $any($event.target).value || '')"
+                  placeholder="Enter city">
+                </ion-input>
+              </ion-item>
+
+              <ion-item lines="none" class="settings-item">
+                <ion-label position="stacked">Barangay</ion-label>
+                <ion-input
+                  [value]="profileSettings.barangay"
+                  (ionInput)="updateProfileField('barangay', $any($event.target).value || '')"
+                  placeholder="Enter barangay">
+                </ion-input>
+              </ion-item>
+            </div>
+
+            <ion-button expand="block" class="settings-save-btn" (click)="saveProfileSettings()">
+              <ion-icon name="save-outline" slot="start"></ion-icon>
+              Save Profile Settings
+            </ion-button>
           </ion-card-content>
         </ion-card>
-        
-        <ion-card class="feature-card">
+
+        <ion-card class="settings-card notifications-card">
           <ion-card-content>
-            <ion-icon name="notifications-outline"></ion-icon>
-            <h3>Notifications</h3>
-            <p>Manage app notifications</p>
-          </ion-card-content>
-        </ion-card>
-        
-        <ion-card class="feature-card">
-          <ion-card-content>
-            <ion-icon name="language-outline"></ion-icon>
-            <h3>Language</h3>
-            <p>Change app language</p>
+            <div class="settings-card-head">
+              <ion-icon name="notifications-outline"></ion-icon>
+              <div>
+                <h3>Notification Center</h3>
+                <p>Useful alerts based on disease reports and your app activity.</p>
+              </div>
+            </div>
+
+            <div class="notification-toggles">
+              <ion-item lines="none" class="settings-item toggle-item">
+                <ion-label>Disease hotspot alerts</ion-label>
+                <ion-toggle
+                  slot="end"
+                  [checked]="notificationSettings.diseaseAlerts"
+                  (ionChange)="onNotificationToggle('diseaseAlerts', $event.detail.checked)">
+                </ion-toggle>
+              </ion-item>
+
+              <ion-item lines="none" class="settings-item toggle-item">
+                <ion-label>Nearby risk reminders</ion-label>
+                <ion-toggle
+                  slot="end"
+                  [checked]="notificationSettings.locationAlerts"
+                  (ionChange)="onNotificationToggle('locationAlerts', $event.detail.checked)">
+                </ion-toggle>
+              </ion-item>
+
+              <ion-item lines="none" class="settings-item toggle-item">
+                <ion-label>Weekly summary</ion-label>
+                <ion-toggle
+                  slot="end"
+                  [checked]="notificationSettings.weeklySummary"
+                  (ionChange)="onNotificationToggle('weeklySummary', $event.detail.checked)">
+                </ion-toggle>
+              </ion-item>
+
+              <ion-item lines="none" class="settings-item toggle-item">
+                <ion-label>Account reminders</ion-label>
+                <ion-toggle
+                  slot="end"
+                  [checked]="notificationSettings.accountAlerts"
+                  (ionChange)="onNotificationToggle('accountAlerts', $event.detail.checked)">
+                </ion-toggle>
+              </ion-item>
+            </div>
+
+            <div class="notification-summary-row" *ngIf="notificationItems.length > 0">
+              <span class="summary-badge">{{ unreadNotifications }} unread</span>
+              <ion-button size="small" fill="outline" (click)="markNotificationsRead()">
+                Mark all as read
+              </ion-button>
+            </div>
+
+            <div class="notification-list" *ngIf="notificationItems.length > 0; else noNotificationsYet">
+              <div class="notification-item" *ngFor="let item of notificationItems" [class.unread]="item.unread">
+                <div class="notification-title-row">
+                  <span class="severity-dot" [class.high]="item.severity === 'high'" [class.medium]="item.severity === 'medium'" [class.info]="item.severity === 'info'"></span>
+                  <h4>{{ item.title }}</h4>
+                  <span class="time-label">{{ item.timeLabel }}</span>
+                </div>
+                <p>{{ item.message }}</p>
+              </div>
+            </div>
+
+            <ng-template #noNotificationsYet>
+              <div class="notification-empty">
+                <ion-icon name="mail-open-outline"></ion-icon>
+                <p>No notification updates yet.</p>
+              </div>
+            </ng-template>
           </ion-card-content>
         </ion-card>
       </div>
@@ -176,29 +402,65 @@
         <h1>Help & Support</h1>
       </div>
       <p class="section-description">Learn how to use Mangosense effectively and get support</p>
-      
-      <div class="feature-cards">
-        <ion-card class="feature-card">
+
+      <div class="help-grid">
+        <ion-card class="help-card quick-actions-card">
           <ion-card-content>
-            <ion-icon name="book-outline"></ion-icon>
-            <h3>User Guide</h3>
-            <p>Step-by-step app instructions</p>
+            <div class="help-card-head">
+              <ion-icon name="rocket-outline"></ion-icon>
+              <div>
+                <h3>Quick Help Actions</h3>
+                <p>Jump to the tools most users need during troubleshooting.</p>
+              </div>
+            </div>
+
+            <div class="help-actions-list">
+              <button
+                type="button"
+                class="help-action-item"
+                *ngFor="let action of helpQuickActions"
+                (click)="runHelpAction(action.action)">
+                <ion-icon [name]="action.icon"></ion-icon>
+                <div>
+                  <strong>{{ action.title }}</strong>
+                  <p>{{ action.description }}</p>
+                </div>
+                <ion-icon name="chevron-forward-outline" class="forward-icon"></ion-icon>
+              </button>
+            </div>
           </ion-card-content>
         </ion-card>
-        
-        <ion-card class="feature-card">
+
+        <ion-card class="help-card faq-card">
           <ion-card-content>
-            <ion-icon name="chatbubble-outline"></ion-icon>
-            <h3>FAQ</h3>
-            <p>Frequently asked questions</p>
-          </ion-card-content>
-        </ion-card>
-        
-        <ion-card class="feature-card">
-          <ion-card-content>
-            <ion-icon name="mail-outline"></ion-icon>
-            <h3>Contact Support</h3>
-            <p>Get help from our team</p>
+            <div class="help-card-head">
+              <ion-icon name="chatbox-ellipses-outline"></ion-icon>
+              <div>
+                <h3>Frequently Asked Questions</h3>
+                <p>Answers to common issues while using MangoSense.</p>
+              </div>
+            </div>
+
+            <div class="faq-list">
+              <div class="faq-item" *ngFor="let faq of helpFaqs; let i = index" [class.expanded]="faq.expanded">
+                <button type="button" class="faq-question" (click)="toggleHelpFaq(i)">
+                  <span>{{ faq.question }}</span>
+                  <ion-icon [name]="faq.expanded ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
+                </button>
+                <p class="faq-answer" *ngIf="faq.expanded">{{ faq.answer }}</p>
+              </div>
+            </div>
+
+            <div class="support-contact-strip">
+              <div>
+                <h4>Still need help?</h4>
+                <p>Send us details and screenshots so we can investigate faster.</p>
+              </div>
+              <ion-button size="small" (click)="contactSupport()">
+                <ion-icon name="mail-outline" slot="start"></ion-icon>
+                Contact Support
+              </ion-button>
+            </div>
           </ion-card-content>
         </ion-card>
       </div>

@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { ToastController } from '@ionic/angular';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { environment } from 'src/environments/environment';
 
@@ -38,6 +39,54 @@ interface NearbyDisease {
   confidence: number | null;
 }
 
+interface ProfileSettingsState {
+  firstName: string;
+  lastName: string;
+  email: string;
+  province: string;
+  city: string;
+  barangay: string;
+}
+
+interface NotificationSettingsState {
+  diseaseAlerts: boolean;
+  locationAlerts: boolean;
+  weeklySummary: boolean;
+  accountAlerts: boolean;
+}
+
+interface NotificationItem {
+  title: string;
+  message: string;
+  timeLabel: string;
+  severity: 'high' | 'medium' | 'info';
+  unread: boolean;
+}
+
+interface HelpFaqItem {
+  question: string;
+  answer: string;
+  expanded: boolean;
+}
+
+interface HelpQuickAction {
+  title: string;
+  description: string;
+  icon: string;
+  action: 'reports' | 'history' | 'tips' | 'contact';
+}
+
+interface AnalysisRecord {
+  id: number;
+  disease: string;
+  confidence: number;
+  uploaded_at?: string;
+  date?: string;
+  image_url?: string;
+  notes?: string;
+  filename?: string;
+}
+
 @Component({
   selector: 'app-folder',
   templateUrl: './folder.page.html',
@@ -52,6 +101,28 @@ export class FolderPage implements OnInit {
   public diseaseLocations: DiseaseLocation[] = [];
   public nearbyDiseases: NearbyDisease[] = [];
   public topDiseaseCounts: Array<{ disease: string; count: number }> = [];
+  public analysisHistory: AnalysisRecord[] = [];
+  public isHistoryLoading = false;
+  public historyError = '';
+  public selectedHistoryId: number | null = null;
+  public profileSettings: ProfileSettingsState = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    province: '',
+    city: '',
+    barangay: ''
+  };
+  public notificationSettings: NotificationSettingsState = {
+    diseaseAlerts: true,
+    locationAlerts: true,
+    weeklySummary: true,
+    accountAlerts: true
+  };
+  public notificationItems: NotificationItem[] = [];
+  public unreadNotifications = 0;
+  public helpQuickActions: HelpQuickAction[] = [];
+  public helpFaqs: HelpFaqItem[] = [];
 
   private routeSub?: Subscription;
   private currentLocation: { lat: number; lng: number } | null = null;
@@ -60,6 +131,7 @@ export class FolderPage implements OnInit {
   private router = inject(Router);
   private http = inject(HttpClient);
   private sanitizer = inject(DomSanitizer);
+  private toastCtrl = inject(ToastController);
 
   constructor() {}
 
@@ -68,12 +140,22 @@ export class FolderPage implements OnInit {
       this.folder = params.get('id') ?? '';
 
       if (this.folder === 'History') {
-        this.router.navigate(['/pages/history']);
+        this.loadAnalysisHistory();
         return;
       }
 
       if (this.folder === 'Reports') {
         this.loadDiseaseHeatmap();
+        return;
+      }
+
+      if (this.folder === 'Settings') {
+        this.loadSettingsData();
+        return;
+      }
+
+      if (this.folder === 'Help') {
+        this.loadHelpData();
       }
     });
   }
@@ -110,6 +192,306 @@ export class FolderPage implements OnInit {
     }
 
     return 'Inspect nearby trees weekly, remove infected tissues early, and keep orchard sanitation strict.';
+  }
+
+  updateProfileField(field: keyof ProfileSettingsState, value: string): void {
+    this.profileSettings[field] = value;
+  }
+
+  async saveProfileSettings(): Promise<void> {
+    localStorage.setItem('profileSettings', JSON.stringify(this.profileSettings));
+
+    const userInfoRaw = localStorage.getItem('userInfo');
+    if (userInfoRaw) {
+      try {
+        const userInfo = JSON.parse(userInfoRaw);
+        const merged = {
+          ...userInfo,
+          firstName: this.profileSettings.firstName,
+          lastName: this.profileSettings.lastName,
+          email: this.profileSettings.email,
+          province: this.profileSettings.province,
+          city: this.profileSettings.city,
+          barangay: this.profileSettings.barangay,
+        };
+        localStorage.setItem('userInfo', JSON.stringify(merged));
+      } catch {
+        // ignore malformed user info and keep profileSettings state as source of truth
+      }
+    }
+
+    const fullName = `${this.profileSettings.firstName} ${this.profileSettings.lastName}`.trim();
+    if (fullName) {
+      localStorage.setItem('userName', fullName);
+    }
+
+    await this.presentToast('Profile settings saved.');
+  }
+
+  async onNotificationToggle(field: keyof NotificationSettingsState, checked: boolean): Promise<void> {
+    this.notificationSettings[field] = checked;
+    localStorage.setItem('notificationSettings', JSON.stringify(this.notificationSettings));
+    await this.presentToast('Notification preferences updated.');
+  }
+
+  markNotificationsRead(): void {
+    this.notificationItems = this.notificationItems.map((item) => ({ ...item, unread: false }));
+    this.unreadNotifications = 0;
+  }
+
+  toggleHelpFaq(index: number): void {
+    this.helpFaqs = this.helpFaqs.map((faq, currentIndex) => {
+      if (currentIndex === index) {
+        return { ...faq, expanded: !faq.expanded };
+      }
+      return faq;
+    });
+  }
+
+  async runHelpAction(action: HelpQuickAction['action']): Promise<void> {
+    if (action === 'reports') {
+      this.router.navigate(['/folder/Reports']);
+      return;
+    }
+
+    if (action === 'history') {
+      this.router.navigate(['/pages/history']);
+      return;
+    }
+
+    if (action === 'tips') {
+      this.router.navigate(['/folder/Tips']);
+      return;
+    }
+
+    if (action === 'contact') {
+      this.contactSupport();
+    }
+  }
+
+  goToHome(): void {
+    this.router.navigate(['/home']);
+  }
+
+  contactSupport(): void {
+    const subject = encodeURIComponent('MangoSense Support Request');
+    const body = encodeURIComponent(
+      'Hi MangoSense Team,\n\nI need help with:\n\n[Please describe your issue]\n\nDevice:\nApp page:\n'
+    );
+    window.location.href = `mailto:support@mangosense.app?subject=${subject}&body=${body}`;
+  }
+
+  private loadSettingsData(): void {
+    this.loadProfileSettings();
+    this.loadNotificationSettings();
+    this.loadNotificationInsights();
+  }
+
+  private loadHelpData(): void {
+    this.helpQuickActions = [
+      {
+        title: 'Open Disease Reports',
+        description: 'Check hotspots and nearby prevention alerts on the heatmap.',
+        icon: 'bar-chart-outline',
+        action: 'reports'
+      },
+      {
+        title: 'Review Analysis History',
+        description: 'See your previous detections and monitor recurring disease patterns.',
+        icon: 'time-outline',
+        action: 'history'
+      },
+      {
+        title: 'Read Growing Tips',
+        description: 'Follow practical disease-prevention guidance for healthier mango trees.',
+        icon: 'bulb-outline',
+        action: 'tips'
+      },
+      {
+        title: 'Contact Support',
+        description: 'Send your issue details to the MangoSense support team by email.',
+        icon: 'mail-outline',
+        action: 'contact'
+      }
+    ];
+
+    this.helpFaqs = [
+      {
+        question: 'Why is my detection result marked Unknown?',
+        answer: 'Unknown appears when the model confidence is too low. Capture a clear, well-lit image focused on a mango leaf or fruit and try again.',
+        expanded: true
+      },
+      {
+        question: 'How do I improve location-based disease alerts?',
+        answer: 'Enable device location permissions and keep GPS active while opening Reports. Nearby alerts require your current position.',
+        expanded: false
+      },
+      {
+        question: 'Why do I not see records in my history?',
+        answer: 'Only saved detections linked to your account appear in History. Ensure you are logged in with the same account used during detection.',
+        expanded: false
+      },
+      {
+        question: 'How can I report incorrect disease predictions?',
+        answer: 'Use the verification/feedback flow after prediction and provide symptom details. This helps improve future model performance.',
+        expanded: false
+      }
+    ];
+  }
+
+  private loadProfileSettings(): void {
+    const savedProfileRaw = localStorage.getItem('profileSettings');
+    const userInfoRaw = localStorage.getItem('userInfo');
+
+    let fromUserInfo: Partial<ProfileSettingsState> = {};
+    if (userInfoRaw) {
+      try {
+        const userInfo = JSON.parse(userInfoRaw);
+        fromUserInfo = {
+          firstName: userInfo.firstName || userInfo.first_name || '',
+          lastName: userInfo.lastName || userInfo.last_name || '',
+          email: userInfo.email || '',
+          province: userInfo.province || '',
+          city: userInfo.city || '',
+          barangay: userInfo.barangay || '',
+        };
+      } catch {
+        fromUserInfo = {};
+      }
+    }
+
+    if (savedProfileRaw) {
+      try {
+        const saved = JSON.parse(savedProfileRaw);
+        this.profileSettings = {
+          firstName: saved.firstName ?? fromUserInfo.firstName ?? '',
+          lastName: saved.lastName ?? fromUserInfo.lastName ?? '',
+          email: saved.email ?? fromUserInfo.email ?? '',
+          province: saved.province ?? fromUserInfo.province ?? '',
+          city: saved.city ?? fromUserInfo.city ?? '',
+          barangay: saved.barangay ?? fromUserInfo.barangay ?? ''
+        };
+        return;
+      } catch {
+        // fallback to user info mapping below
+      }
+    }
+
+    this.profileSettings = {
+      firstName: fromUserInfo.firstName ?? '',
+      lastName: fromUserInfo.lastName ?? '',
+      email: fromUserInfo.email ?? '',
+      province: fromUserInfo.province ?? '',
+      city: fromUserInfo.city ?? '',
+      barangay: fromUserInfo.barangay ?? ''
+    };
+  }
+
+  private loadNotificationSettings(): void {
+    const savedRaw = localStorage.getItem('notificationSettings');
+    if (!savedRaw) {
+      return;
+    }
+
+    try {
+      const saved = JSON.parse(savedRaw);
+      this.notificationSettings = {
+        diseaseAlerts: saved.diseaseAlerts ?? true,
+        locationAlerts: saved.locationAlerts ?? true,
+        weeklySummary: saved.weeklySummary ?? true,
+        accountAlerts: saved.accountAlerts ?? true,
+      };
+    } catch {
+      // keep defaults
+    }
+  }
+
+  private async loadNotificationInsights(): Promise<void> {
+    this.notificationItems = [];
+
+    try {
+      const response = await firstValueFrom(
+        this.http.get<DiseaseLocationsResponse>(`${environment.apiUrl}/disease-locations/all/`)
+      );
+
+      const rawLocations = response?.data?.locations ?? [];
+      const diseasedLocations = rawLocations.filter((location) => !this.isHealthyDisease(location.disease || ''));
+
+      const diseaseCounts = new Map<string, number>();
+      diseasedLocations.forEach((location) => {
+        const disease = (location.disease || 'Unknown').trim();
+        diseaseCounts.set(disease, (diseaseCounts.get(disease) ?? 0) + 1);
+      });
+
+      const topDisease = Array.from(diseaseCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+      const totalCases = diseasedLocations.length;
+
+      const items: NotificationItem[] = [];
+
+      if (this.notificationSettings.diseaseAlerts && topDisease) {
+        items.push({
+          title: 'Disease hotspot update',
+          message: `${topDisease[0]} has ${topDisease[1]} reported case(s). Prioritize orchard checks in affected areas.`,
+          timeLabel: 'Today',
+          severity: topDisease[1] >= 5 ? 'high' : 'medium',
+          unread: true
+        });
+      }
+
+      if (this.notificationSettings.locationAlerts) {
+        items.push({
+          title: 'Nearby risk reminders',
+          message: 'Enable location services in Reports to receive nearby disease prevention alerts in real time.',
+          timeLabel: 'Today',
+          severity: 'info',
+          unread: true
+        });
+      }
+
+      if (this.notificationSettings.weeklySummary) {
+        items.push({
+          title: 'Weekly disease summary',
+          message: `${totalCases} diseased detections are currently mapped. Review Reports to monitor trend changes.`,
+          timeLabel: 'This week',
+          severity: 'info',
+          unread: true
+        });
+      }
+
+      if (this.notificationSettings.accountAlerts) {
+        items.push({
+          title: 'Profile completion reminder',
+          message: 'Keep your location details up to date so disease recommendations can be more relevant to your area.',
+          timeLabel: 'This week',
+          severity: 'info',
+          unread: true
+        });
+      }
+
+      this.notificationItems = items;
+      this.unreadNotifications = items.filter((item) => item.unread).length;
+    } catch {
+      this.notificationItems = [
+        {
+          title: 'Notification service unavailable',
+          message: 'We could not fetch the latest disease alerts right now. Please try again later.',
+          timeLabel: 'Now',
+          severity: 'info',
+          unread: true
+        }
+      ];
+      this.unreadNotifications = 1;
+    }
+  }
+
+  private async presentToast(message: string): Promise<void> {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 1800,
+      position: 'top',
+      color: 'success'
+    });
+    await toast.present();
   }
 
   private async loadDiseaseHeatmap(): Promise<void> {
@@ -429,6 +811,108 @@ export class FolderPage implements OnInit {
 
   private toRadians(value: number): number {
     return value * (Math.PI / 180);
+  }
+
+  async loadAnalysisHistory(): Promise<void> {
+    this.isHistoryLoading = true;
+    this.historyError = '';
+    this.analysisHistory = [];
+
+    try {
+      const response = await firstValueFrom(
+        this.http.get<{ success: boolean; data?: { analyses?: AnalysisRecord[] } }>(
+          `${environment.apiUrl}/history/`
+        )
+      );
+
+      const analyses = response?.data?.analyses ?? [];
+      
+      // Normalize the data: map 'date' from backend to 'uploaded_at'
+      const normalizedAnalyses = analyses.map((record) => ({
+        ...record,
+        uploaded_at: record.uploaded_at || record.date || new Date().toISOString()
+      }));
+
+      this.analysisHistory = normalizedAnalyses
+        .sort((a, b) => {
+          const dateA = new Date(a.uploaded_at || 0).getTime();
+          const dateB = new Date(b.uploaded_at || 0).getTime();
+          return dateB - dateA; // Descending order (newest first)
+        })
+        .slice(0, 20); // Show last 20 records
+
+      if (this.analysisHistory.length === 0) {
+        this.historyError = 'No analysis history yet. Start by analyzing your mango trees to build your record.';
+      }
+    } catch (error) {
+      console.error('Failed to load analysis history:', error);
+      this.historyError = 'Unable to load your analysis history. Please try again or check your internet connection.';
+      this.analysisHistory = [];
+    } finally {
+      this.isHistoryLoading = false;
+    }
+  }
+
+  getHistoryItemCssClass(disease: string): string {
+    return 'disease-' + disease.toLowerCase().replace(/\s+/g, '-');
+  }
+
+  toggleHistoryItemDetails(recordId: number): void {
+    this.selectedHistoryId = this.selectedHistoryId === recordId ? null : recordId;
+  }
+
+  getDiseaseIcon(disease: string): string {
+    const normalized = disease.toLowerCase();
+    if (normalized.includes('anthracnose')) return 'alert-circle-outline';
+    if (normalized.includes('powdery')) return 'water-outline';
+    if (normalized.includes('sooty')) return 'cloud-outline';
+    if (normalized.includes('die back')) return 'flashoff-outline';
+    if (normalized.includes('stem end') || normalized.includes('black mould')) return 'bug-outline';
+    if (normalized.includes('healthy')) return 'checkmark-circle-outline';
+    return 'help-circle-outline';
+  }
+
+  getDiseaseColor(disease: string): string {
+    const normalized = disease.toLowerCase();
+    if (normalized.includes('anthracnose')) return '#c23535';
+    if (normalized.includes('powdery')) return '#f08a00';
+    if (normalized.includes('sooty')) return '#424242';
+    if (normalized.includes('die back')) return '#d85f00';
+    if (normalized.includes('stem end') || normalized.includes('black mould')) return '#6a4c4c';
+    if (normalized.includes('healthy')) return '#457800';
+    return '#7a8f79';
+  }
+
+  getFormattedDate(dateString: string | undefined): string {
+    if (!dateString) return 'Date unavailable';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Date unavailable';
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Date unavailable';
+    }
+  }
+
+  getFormattedTime(dateString: string | undefined): string {
+    if (!dateString) return 'Time unavailable';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Time unavailable';
+      return date.toLocaleTimeString('en-US', { 
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+    } catch {
+      return 'Time unavailable';
+    }
   }
 
   private escapeJs(value: string): string {
