@@ -11,7 +11,7 @@ import { ExifLocationService, LocationConsentResult } from 'src/app/services/exi
 
 // our local services for this page
 import { VerifySymptomsService, SymptomsData } from './services/verify-symptoms.service';
-import { VerifyDetectionService } from './services/verify-detection.service';
+import { VerifyDetectionService, SymptomItem } from './services/verify-detection.service';
 
 @Component({
   selector: 'app-verify',
@@ -45,16 +45,16 @@ export class VerifyPage implements OnInit {
   // what we show at the end
   detectedDisease = '';
   confidence = 0;
-  symptoms: string[] = []; // main symptoms
-  
+  symptoms: SymptomItem[] = []; // main symptoms
+
   // top 3 guesses from ai
   topDiseases: any[] = [];
-  alternativeSymptoms: string[] = [];
+  alternativeSymptoms: SymptomItem[] = [];
   selectedSymptoms: boolean[] = [];
   selectedAlternativeSymptoms: boolean[] = [];
-  
+
   // all symptoms together
-  allSymptoms: string[] = []; // both types combined
+  allSymptoms: SymptomItem[] = []; // both types combined
   allSelectedSymptoms: boolean[] = []; // checkboxes for everything
   showMoreOptions: boolean = false;
   // where they are
@@ -453,12 +453,12 @@ export class VerifyPage implements OnInit {
         this.detectedDisease = rawDisease || 'Unknown';
       }
       
-      // get symptoms for whatever disease we found
-      this.symptoms = this.getDiseaseSymptoms(this.detectedDisease);
-      
-      // grab more symptoms from runner ups
-      this.extractAlternativeSymptoms();
-      
+      // get symptoms for whatever disease we found (API call)
+      this.symptoms = await this.getDiseaseSymptoms(this.detectedDisease);
+
+      // grab more symptoms from runner ups (parallel API calls)
+      await this.extractAlternativeSymptoms();
+
       // setup the big arrays
       this.initializeUnifiedSymptoms();
       
@@ -711,8 +711,7 @@ export class VerifyPage implements OnInit {
   
 
 
-  getDiseaseSymptoms(disease: string): string[] {
-    // ask service for symptoms
+  getDiseaseSymptoms(disease: string): Promise<SymptomItem[]> {
     return this.detectionService.getDiseaseSymptoms(disease, this.detectionType as 'fruit' | 'leaf');
   }
 
@@ -872,40 +871,39 @@ export class VerifyPage implements OnInit {
   }
 
   // get checked main symptoms
-  getSelectedSymptoms(): string[] {
+  getSelectedSymptoms(): SymptomItem[] {
     return this.symptoms.filter((_, i) => this.selectedSymptoms[i]);
   }
 
-  // get checked primary symptoms via service
-  getSelectedPrimarySymptoms(): string[] {
+  // get checked primary symptoms via service (returns SymptomItem[] for display)
+  getSelectedPrimarySymptoms(): SymptomItem[] {
     return this.symptomsService.getSelectedPrimarySymptoms(
       this.symptoms,
       this.selectedSymptoms
     );
   }
 
-  // get checked alt symptoms via service
-  getSelectedAlternativeSymptoms(): string[] {
+  // get checked alt symptoms via service (returns SymptomItem[] for display)
+  getSelectedAlternativeSymptoms(): SymptomItem[] {
     return this.symptomsService.getSelectedAlternativeSymptoms(
       this.alternativeSymptoms,
       this.selectedAlternativeSymptoms
     );
   }
 
-  // grab symptoms from 2nd and 3rd disease guesses
-  // grabs from runner up diseases using service
-  private extractAlternativeSymptoms() {
-    const result = this.symptomsService.extractAlternativeSymptoms(
+  // grab symptoms from 2nd and 3rd disease guesses (async — parallel API calls)
+  private async extractAlternativeSymptoms(): Promise<void> {
+    const result = await this.symptomsService.extractAlternativeSymptoms(
       this.topDiseases,
-      (disease: string) => this.detectionService.getDiseaseSymptoms(disease,this.detectionType as 'fruit' | 'leaf')
+      (disease: string) => this.detectionService.getDiseaseSymptoms(disease, this.detectionType as 'fruit' | 'leaf')
     );
-    
+
     this.alternativeSymptoms = result.symptoms;
     this.selectedAlternativeSymptoms = result.selectionArray;
   }
 
-  // get everything thats checked using service
-  getAllSelectedSymptoms(): string[] {
+  // get everything thats checked using service (returns SymptomItem[])
+  getAllSelectedSymptoms(): SymptomItem[] {
     return this.symptomsService.getAllSelectedSymptoms(
       this.symptoms,
       this.selectedSymptoms,

@@ -80,11 +80,11 @@
               
               <ul class="symptoms-list">
                 <li *ngFor="let symptom of symptoms; let i = index">
-                  <ion-checkbox 
-                    [(ngModel)]="selectedSymptoms[i]" 
+                  <ion-checkbox
+                    [(ngModel)]="selectedSymptoms[i]"
                     (ionChange)="onSymptomChange(i, $event)">
                   </ion-checkbox>
-                  <span>{{ symptom }}</span>
+                  <span>{{ symptom.label }}</span>
                 </li>
               </ul>
             </div>
@@ -111,12 +111,12 @@
                 
                 <ul class="symptoms-list alternative" *ngIf="alternativeSymptoms.length > 0">
                   <li *ngFor="let symptom of alternativeSymptoms; let i = index">
-                    <ion-checkbox 
-                      [(ngModel)]="selectedAlternativeSymptoms[i]" 
+                    <ion-checkbox
+                      [(ngModel)]="selectedAlternativeSymptoms[i]"
                       [checked]="selectedAlternativeSymptoms[i]"
                       (ionChange)="onAlternativeSymptomChange(i, $event)">
                     </ion-checkbox>
-                    <span>{{ symptom }}</span>
+                    <span>{{ symptom.label }}</span>
                   </li>
                 </ul>
               </div>
@@ -304,8 +304,7 @@
             <div class="selected-symptoms-section" *ngIf="getSelectedPrimarySymptoms().length > 0">
               <ul class="selected-symptoms-list">
                 <li *ngFor="let symptom of getSelectedPrimarySymptoms()">
-                  <!--<ion-icon name="checkmark-outline"></ion-icon>  -->
-                  <span>{{ symptom }}</span>
+                  <span>{{ symptom.label }}</span>
                 </li>
               </ul>
             </div>
@@ -313,8 +312,7 @@
               <h4>Other Symptoms Observed</h4>
               <ul class="selected-symptoms-list alternative">
                 <li *ngFor="let symptom of getSelectedAlternativeSymptoms()">
-                  <!-- <ion-icon name="checkmark-outline"></ion-icon> -->
-                  <span>{{ symptom }}</span>
+                  <span>{{ symptom.label }}</span>
                 </li>
               </ul>
             </div>

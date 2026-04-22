@@ -1,4 +1,12 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+
+export interface SymptomItem {
+  key: string;
+  label: string;
+}
 
 export interface DetectionResult {
   detectedDisease: string;
@@ -14,146 +22,38 @@ export interface ProcessedDetectionData {
   topDiseases: any[];
 }
 
+const FALLBACK_SYMPTOMS: SymptomItem[] = [
+  { key: 'obs_discolouration', label: 'Look for any unusual discoloration or spots' },
+  { key: 'obs_texture',        label: 'Check for changes in texture or firmness' },
+  { key: 'obs_growth',         label: 'Notice any abnormal growth patterns' },
+  { key: 'obs_environment',    label: 'Consider environmental factors affecting the plant' },
+];
+
 @Injectable({
   providedIn: 'root'
 })
 export class VerifyDetectionService {
 
-  private readonly CONFIDENCE_THRESHOLD = 30; 
+  private readonly CONFIDENCE_THRESHOLD = 30;
 
-  constructor() { }
+  constructor(private http: HttpClient) {}
 
- 
-  getDiseaseSymptoms(disease: string, plantPart: 'fruit' | 'leaf'): string[]{
-    const symptomsMap: {[key:string]:{fruit:string[], leaf:string[]} } = {
-      'Anthracnose':{ 
-        fruit: [
-          'Dark, sunken spots on fruits',
-          'Black or brown lesions on leaves',
-          'Spots may have pink or orange spore masses in humid conditions',
-          'Premature fruit drop'
-        ],
-        leaf: [
-          'Irregular brown or black spots on leaves',
-          'lesions with dark borders',
-          'yellowing around affected areas',
-          'Premature leaf drop',
-        ]
-      },
-      'Bacterial Canker':{ 
-        fruit: [
-          'Are the ends of branches drying up and dying?',
-          'Is the drying moving from the tip towards the main branch?',
-          'Does the plant look stressed or weak?'
-        ],
-        leaf:[
-          'Water-soaked spots on leaves',
-          'Yellowing of leaf margins',
-          'Brown, dead areas on leaves',
-          'Leaf wilting and drop'
-        ],
-      },
-      'Cutting Weevil': {
-        fruit: [
-          'Small holes in young shoots and leaves',
-          'Wilting of terminal shoots',
-          'Presence of small weevil insects',
-          'Damage typically at growing tips'
-        ],
-        leaf: [
-          'Browning and drying of leaves from tip backward',
-          'Yellowing before browning',
-          'Leaf curling and wilting',
-          'Defoliation starting from branch tips'
-        ]
-      },
-      'Die Back': {
-        fruit:[
-          'Progressive death of branches from tips downward',
-          'Browning and drying of leaves',
-          'Bark cracking or splitting',
-          'Reduced fruit production'
-        ],
-        leaf:[
-          'Browning and drying of leaves',
-          'Yellowing before browning',
-          'Leaf curling and wilting',
-          'Defoliation starting from branch tips'
-        ]
-      },
-      'Gall Midge': {
-        fruit: [
-          'Small bumps or galls on leaves',
-          'Distorted leaf growth',
-          'Presence of tiny flies around the plant',
-          'Stunted shoot development'
-        ],
-        leaf: [
-          'Small bumps or galls on leaf surface',
-          'Distorted and twisted leaf growth',
-          'Yellowing around gall areas',
-          'Stunted leaf development'
-        ]
-      },
-      'Healthy': { 
-        fruit: [
-          'Normal fruit development',
-          'Uniform color and size',
-          'Smooth, firm texture',
-          'No visible spots or lesions'
-        ],
-        leaf: [
-          'Vibrant green color',
-          'Smooth, unblemished surface',
-          'Normal size and shape',
-          'No discoloration or spots'
-        ]
-      },
-      'Powdery Mildew': {
-        fruit:[
-          'White, powdery coating on leaves',
-          'Yellowing of affected leaves',
-          'Distorted or stunted growth',
-          'Premature leaf drop'
-        ],
-        leaf:[
-          'White, powdery coating on leaf surfaces',
-          'Yellowing of affected leaves',
-          'Leaf curling and distortion',
-          'Premature leaf drop'
-        ]
-      },
-      'Sooty Mould': {
-        fruit:[
-          'Black, sooty coating on fruit surface',
-          'Sticky residue on fruits',
-          'Cosmetic damage (fruit still edible)',
-          'Associated with insect infestations'
-        ],
-        leaf:[
-          'Black, sooty coating on upper leaf surface',
-          'Reduced photosynthesis',
-          'Yellowing of leaves beneath coating',
-          'Sticky honeydew substance present'
-        ]
-      }
-    };
-    const diseaseSymptoms = symptomsMap[disease];
-
-    if(diseaseSymptoms){
-      return diseaseSymptoms[plantPart];
+  async getDiseaseSymptoms(disease: string, plantPart: 'fruit' | 'leaf'): Promise<SymptomItem[]> {
+    if (!disease || disease === 'Unknown') {
+      return FALLBACK_SYMPTOMS;
     }
-    return [
-      'Look for any unusual discoloration or spots',
-      'Check for changes in texture or firmness', 
-      'Notice any abnormal growth patterns',
-      'Consider environmental factors affecting the plant'
-    ];
+    try {
+      const url = `${environment.apiUrl}/symptoms/?disease=${encodeURIComponent(disease)}&plant_part=${plantPart}`;
+      const response = await firstValueFrom(
+        this.http.get<{ disease: string; plant_part: string; symptoms: SymptomItem[] }>(url)
+      );
+      return response.symptoms?.length ? response.symptoms : FALLBACK_SYMPTOMS;
+    } catch {
+      return FALLBACK_SYMPTOMS;
+    }
   }
 
-  
   //turn base64 string into file object
-   
   base64ToFile(imageData: string): File {
     const base64 = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
     const byteCharacters = atob(base64);
@@ -179,26 +79,26 @@ export class VerifyDetectionService {
     } else {
       // no array so build one ourselves
       topDiseases = [];
-      
+
       // try to find the main one
-      const primaryDisease = detectionResult.predicted_disease || 
-                            detectionResult.disease || 
+      const primaryDisease = detectionResult.predicted_disease ||
+                            detectionResult.disease ||
                             (detectionResult.data && detectionResult.data.primary_prediction && detectionResult.data.primary_prediction.disease);
-                            
+
       if (primaryDisease) {
-        const primaryConfidence = detectionResult.confidence || 
+        const primaryConfidence = detectionResult.confidence ||
                      (detectionResult.data && detectionResult.data.primary_prediction && detectionResult.data.primary_prediction.confidence_score) || 0;
-                     
+
         topDiseases.push({
           disease: primaryDisease,
           predicted_disease: primaryDisease,
           confidence: primaryConfidence
         });
-        
+
         // throw in some common diseases too
         const commonAlternatives = ['Anthracnose', 'Bacterial Canker', 'Powdery Mildew', 'Die Back', 'Sooty Mould'];
         const filteredAlternatives = commonAlternatives.filter(disease => disease !== primaryDisease);
-        
+
         // add 2 more with lower confidence
         filteredAlternatives.slice(0, 2).forEach((disease, index) => {
           topDiseases.push({
@@ -208,13 +108,12 @@ export class VerifyDetectionService {
           });
         });
       }
-      
     }
 
     // pull out disease name and confidence
     let rawDisease = '';
     let confidenceValue: number = 0;
-    
+
     if (detectionResult.data && detectionResult.data.primary_prediction) {
       // newer format
       const prediction = detectionResult.data.primary_prediction;
@@ -224,7 +123,7 @@ export class VerifyDetectionService {
       // old format backup
       rawDisease = detectionResult.predicted_disease || detectionResult.disease || '';
       const rawConfidence = detectionResult.confidence;
-      
+
       // confidence can come in diff formats ugh
       if (typeof rawConfidence === 'string' && rawConfidence.includes('%')) {
         confidenceValue = parseFloat(rawConfidence.replace('%', ''));

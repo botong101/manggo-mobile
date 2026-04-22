@@ -1,24 +1,25 @@
 import { Injectable } from '@angular/core';
+import { SymptomItem } from './verify-detection.service';
 
 export interface SymptomsData {
   // main disease stuff
   detectedDisease: string;
   confidence: number;
-  primarySymptoms: string[];
-  selectedPrimarySymptoms: string[];
-  
+  primarySymptoms: SymptomItem[];
+  selectedPrimarySymptoms: SymptomItem[];   // checked ones — for display in step 4
+
   // backup disease stuff
   topDiseases: any[];
-  alternativeSymptoms: string[];
-  selectedAlternativeSymptoms: string[];
-  
-  // everything combined
+  alternativeSymptoms: SymptomItem[];
+  selectedAlternativeSymptoms: SymptomItem[]; // checked ones — for display in step 4
+
+  // keys sent to backend (canonical keys only — feeds XGBoost encoder)
   allSelectedSymptoms: string[];
-  
+
   // what user said
   isDetectionCorrect: boolean;
   userFeedback: string;
-  
+
   // numbers
   totalSymptomsAvailable: number;
   totalSymptomsSelected: number;
@@ -37,134 +38,102 @@ export class VerifySymptomsService {
   // main helper functions
   // ============================================
 
-  /**
-   * get the main symptoms user checked
-   */
   getSelectedPrimarySymptoms(
-    primarySymptoms: string[],
-    selectedPrimarySymptoms: boolean[]
-  ): string[] {
-    return primarySymptoms.filter((_, index) => selectedPrimarySymptoms[index] === true);
+    primarySymptoms: SymptomItem[],
+    selectedBooleans: boolean[]
+  ): SymptomItem[] {
+    return primarySymptoms.filter((_, i) => selectedBooleans[i] === true);
   }
 
-  /**
-   * get the extra symptoms user checked
-   */
   getSelectedAlternativeSymptoms(
-    alternativeSymptoms: string[],
-    selectedAlternativeSymptoms: boolean[]
-  ): string[] {
-    return alternativeSymptoms.filter((_, index) => selectedAlternativeSymptoms[index] === true);
+    alternativeSymptoms: SymptomItem[],
+    selectedBooleans: boolean[]
+  ): SymptomItem[] {
+    return alternativeSymptoms.filter((_, i) => selectedBooleans[i] === true);
   }
 
-  /**
-   * mash together main and extra checked symptoms
-   */
   getAllSelectedSymptoms(
-    primarySymptoms: string[],
-    selectedPrimarySymptoms: boolean[],
-    alternativeSymptoms: string[],
-    selectedAlternativeSymptoms: boolean[]
-  ): string[] {
-    const selectedPrimary = this.getSelectedPrimarySymptoms(primarySymptoms, selectedPrimarySymptoms);
-    const selectedAlternative = this.getSelectedAlternativeSymptoms(alternativeSymptoms, selectedAlternativeSymptoms);
+    primarySymptoms: SymptomItem[],
+    selectedPrimaryBooleans: boolean[],
+    alternativeSymptoms: SymptomItem[],
+    selectedAlternativeBooleans: boolean[]
+  ): SymptomItem[] {
+    const selectedPrimary = this.getSelectedPrimarySymptoms(primarySymptoms, selectedPrimaryBooleans);
+    const selectedAlternative = this.getSelectedAlternativeSymptoms(alternativeSymptoms, selectedAlternativeBooleans);
     return [...selectedPrimary, ...selectedAlternative];
   }
 
-  /**
-   * did they check anything
-   */
   hasSelectedSymptoms(
-    selectedPrimarySymptoms: boolean[],
-    selectedAlternativeSymptoms: boolean[]
+    selectedPrimaryBooleans: boolean[],
+    selectedAlternativeBooleans: boolean[]
   ): boolean {
-    const hasPrimary = selectedPrimarySymptoms.some(s => s === true);
-    const hasAlternative = selectedAlternativeSymptoms.some(s => s === true);
-    return hasPrimary || hasAlternative;
+    return selectedPrimaryBooleans.some(s => s === true) ||
+           selectedAlternativeBooleans.some(s => s === true);
   }
 
   prepareSymptomsDataForAPI(
     detectedDisease: string,
     confidence: number,
-    primarySymptoms: string[],
-    selectedPrimarySymptoms: boolean[],
-    alternativeSymptoms: string[],
-    selectedAlternativeSymptoms: boolean[],
+    primarySymptoms: SymptomItem[],
+    selectedPrimaryBooleans: boolean[],
+    alternativeSymptoms: SymptomItem[],
+    selectedAlternativeBooleans: boolean[],
     topDiseases: any[],
     isDetectionCorrect: string | null,
     userFeedback: string
   ): SymptomsData {
-    // use the helper methods so no duplicate code
-    const selectedPrimary = this.getSelectedPrimarySymptoms(primarySymptoms, selectedPrimarySymptoms);
-    const selectedAlternative = this.getSelectedAlternativeSymptoms(alternativeSymptoms, selectedAlternativeSymptoms);
-    const allSelected = [...selectedPrimary, ...selectedAlternative];
-    
+    const selectedPrimary = this.getSelectedPrimarySymptoms(primarySymptoms, selectedPrimaryBooleans);
+    const selectedAlternative = this.getSelectedAlternativeSymptoms(alternativeSymptoms, selectedAlternativeBooleans);
+    // canonical keys only — what the XGBoost encoder reads from the DB
+    const allSelectedKeys = [...selectedPrimary, ...selectedAlternative].map(s => s.key);
+
     return {
-      //primary symptoms
-      detectedDisease: detectedDisease,
-      confidence: confidence,
-      primarySymptoms: primarySymptoms,
+      detectedDisease,
+      confidence,
+      primarySymptoms,
       selectedPrimarySymptoms: selectedPrimary,
-      
-      //top 2 and 3 symptoms
-      topDiseases: topDiseases,
-      alternativeSymptoms: alternativeSymptoms,
+
+      topDiseases,
+      alternativeSymptoms,
       selectedAlternativeSymptoms: selectedAlternative,
-      
-      //top 1-3 sypmtoms
-      allSelectedSymptoms: allSelected,
-      
-      //user verify
+
+      allSelectedSymptoms: allSelectedKeys,
+
       isDetectionCorrect: isDetectionCorrect === 'true',
       userFeedback: userFeedback || '',
-      
-      //stats
+
       totalSymptomsAvailable: primarySymptoms.length + alternativeSymptoms.length,
-      totalSymptomsSelected: allSelected.length,
+      totalSymptomsSelected: allSelectedKeys.length,
       primarySymptomsSelected: selectedPrimary.length,
-      alternativeSymptomsSelected: selectedAlternative.length
+      alternativeSymptomsSelected: selectedAlternative.length,
     };
   }
 
-
-  extractAlternativeSymptoms(
-    topDiseases: any[], 
-    getDiseaseSymptoms: (disease: string) => string[]
-  ): { symptoms: string[], selectionArray: boolean[] } {
-    const alternativeSymptoms: string[] = [];
-    
-    
+  async extractAlternativeSymptoms(
+    topDiseases: any[],
+    getDiseaseSymptoms: (disease: string) => Promise<SymptomItem[]>
+  ): Promise<{ symptoms: SymptomItem[], selectionArray: boolean[] }> {
+    const diseasesToFetch: string[] = [];
     if (topDiseases.length >= 2) {
-      // symptoms from disease #2
-      const secondDisease = topDiseases[1].disease || topDiseases[1].predicted_disease;
-      if (secondDisease) {
-        const secondSymptoms = getDiseaseSymptoms(secondDisease);
-        alternativeSymptoms.push(...secondSymptoms);
-      }
+      const second = topDiseases[1].disease || topDiseases[1].predicted_disease;
+      if (second) diseasesToFetch.push(second);
     }
-    
     if (topDiseases.length >= 3) {
-      // symptoms from disease #3
-      const thirdDisease = topDiseases[2].disease || topDiseases[2].predicted_disease;
-      if (thirdDisease) {
-        const thirdSymptoms = getDiseaseSymptoms(thirdDisease);
-        alternativeSymptoms.push(...thirdSymptoms);
-      }
+      const third = topDiseases[2].disease || topDiseases[2].predicted_disease;
+      if (third) diseasesToFetch.push(third);
     }
-    
-    // make checkboxes for alternatives
-    const selectionArray = this.initializeSelectionArray(alternativeSymptoms.length);
-    
+
+    const results = await Promise.all(diseasesToFetch.map(d => getDiseaseSymptoms(d)));
+    const alternativeSymptoms: SymptomItem[] = ([] as SymptomItem[]).concat(...results);
 
     return {
       symptoms: alternativeSymptoms,
-      selectionArray: selectionArray
+      selectionArray: this.initializeSelectionArray(alternativeSymptoms.length),
     };
   }
 
-  
-  initializeSelectionArray(totalSymptomsCount: number): boolean[] {
-    return new Array(totalSymptomsCount).fill(false);
+  initializeSelectionArray(count: number): boolean[] {
+    return new Array(count).fill(false);
   }
 
   validateSymptomsData(data: any): boolean {
@@ -172,28 +141,21 @@ export class VerifySymptomsService {
       'detectedDisease', 'confidence', 'primarySymptoms',
       'topDiseases', 'alternativeSymptoms', 'allSelectedSymptoms',
       'isDetectionCorrect', 'userFeedback',
-      'totalSymptomsAvailable', 'totalSymptomsSelected'
+      'totalSymptomsAvailable', 'totalSymptomsSelected',
     ];
-    
     for (const field of requiredFields) {
       if (!(field in data)) {
         console.error(`Missing required field: ${field}`);
         return false;
       }
     }
-    
-    // check if arrays are actually arrays
-    const arrayFields = ['primarySymptoms', 'topDiseases', 
-                        'alternativeSymptoms', 'allSelectedSymptoms'];
-    
+    const arrayFields = ['primarySymptoms', 'topDiseases', 'alternativeSymptoms', 'allSelectedSymptoms'];
     for (const field of arrayFields) {
       if (!Array.isArray(data[field])) {
         console.error(`Field ${field} should be an array`);
         return false;
       }
     }
-    
     return true;
   }
-
 }
