@@ -37,6 +37,10 @@ interface NearbyDisease {
   distanceKm: number;
   address: string;
   confidence: number | null;
+  caseCount: number;
+  latitude: number;
+  longitude: number;
+  latestDate: string;
 }
 
 interface ProfileSettingsState {
@@ -624,7 +628,7 @@ export class FolderPage implements OnInit {
 
       this.topDiseaseCounts = this.getTopDiseaseCounts(this.diseaseLocations);
       this.currentLocation = await this.getCurrentLocation();
-      this.nearbyDiseases = this.getNearbyDiseases(this.diseaseLocations, this.currentLocation, 12);
+      this.nearbyDiseases = this.getNearbyDiseases(this.diseaseLocations, this.currentLocation, 3);
 
       const center = this.getMapCenter(this.currentLocation, this.diseaseLocations);
       this.buildMapSrcdoc(this.diseaseLocations, center.lat, center.lng, this.currentLocation !== null);
@@ -773,6 +777,24 @@ export class FolderPage implements OnInit {
     this.heatmapSrcdoc = this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
+  public focusOnMap(disease: NearbyDisease) {
+    console.log(`Centering map on ${disease.disease} at coordinates:`, disease.latitude, disease.longitude);
+    
+    // Rebuild the map iframe centered directly on the clicked disease hotspot
+    this.buildMapSrcdoc(
+      this.diseaseLocations, 
+      disease.latitude,      
+      disease.longitude,     
+      this.currentLocation !== null
+    );
+
+    // Smoothly scroll the user's screen back up to the heatmap container
+    const mapContainer = document.querySelector('.reports-heatmap-panel');
+    if (mapContainer) {
+      mapContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   private getHeatIntensity(confidence: number | null): number {
     if (typeof confidence !== 'number' || Number.isNaN(confidence)) {
       return 0.6;
@@ -803,13 +825,28 @@ export class FolderPage implements OnInit {
   private getNearbyDiseases(
     locations: DiseaseLocation[],
     currentLocation: { lat: number; lng: number } | null,
-    radiusKm: number
+    radiusKm: number = 3 // Defaulted to 3 kilometers
   ): NearbyDisease[] {
     if (!currentLocation) {
       return [];
     }
 
-    return locations
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // 1. Filter by month, calculate distance, and sort by closest
+    const validLocations = locations
+      .filter((loc) => {
+        if (!loc.uploaded_at) return false;
+        
+        const reportDate = new Date(loc.uploaded_at); 
+        return (
+          reportDate.getMonth() === currentMonth && 
+          reportDate.getFullYear() === currentYear
+        );
+      })
+      // 2. Map distances and calculate proximity
       .map((location) => {
         const distanceKm = this.calculateDistanceKm(
           currentLocation.lat,
@@ -823,11 +860,41 @@ export class FolderPage implements OnInit {
           distanceKm,
           address: location.address,
           confidence: location.confidence,
+          latitude: location.latitude,
+          longitude: location.longitude,
+          latestDate: location.uploaded_at!
         };
       })
+      // 3. Filter by the 500-meter radius requirement
       .filter((location) => location.distanceKm <= radiusKm)
-      .sort((a, b) => a.distanceKm - b.distanceKm)
-      .slice(0, 6);
+      // 4. Sort by closest first so the grouping picks the nearest distance
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    // 5. Duplicate Check & Grouping
+    const groupedDiseases: NearbyDisease[] = [];
+
+    validLocations.forEach((loc) => {
+      // Check if we already have a card for this specific disease
+      const existingDisease = groupedDiseases.find(g => g.disease === loc.disease);
+      
+      if (existingDisease) {
+        // If it exists, just increase the case count (distance remains the closest one)
+        existingDisease.caseCount += 1;
+      } else {
+        groupedDiseases.push({
+          disease: loc.disease,
+          distanceKm: loc.distanceKm,
+          address: loc.address,
+          confidence: loc.confidence,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          latestDate: loc.latestDate,
+          caseCount: 1
+        });
+      }
+    });
+
+    return groupedDiseases;
   }
 
   private async getCurrentLocation(): Promise<{ lat: number; lng: number } | null> {
