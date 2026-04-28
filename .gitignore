@@ -11,13 +11,6 @@ $RECYCLE.BIN/
 
 *.log
 log.txt
-<<<<<<< HEAD
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-=======
-
->>>>>>> bf5773cc890b75770f61aaad4dc2137917433f98
 
 /.sourcemaps
 /.versions
