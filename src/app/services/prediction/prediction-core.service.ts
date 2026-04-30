@@ -20,8 +20,12 @@ export class PredictionCoreService {
    * get headers with token
    */
   protected getAuthHeaders(): HttpHeaders {
-    const token = localStorage.getItem('token');
-    return new HttpHeaders().set('Authorization', `Token ${token}`);
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      return new HttpHeaders();
+    }
+
+    return new HttpHeaders().set('Authorization', `Bearer ${token}`);
   }
 
   /**
