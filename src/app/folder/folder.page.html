@@ -1,7 +1,7 @@
 <ion-header [translucent]="true">
   <ion-toolbar class="toolbar">
     <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
+      <ion-menu-button class="menu-button"></ion-menu-button>
     </ion-buttons>
     <div class="toolbar-content">
       <img src="assets/logo-name.png" alt="Mangosense Logo" class="logo-name" />
@@ -222,17 +222,35 @@
           <div class="insight-card">
             <h3>Nearby Prevention Alerts</h3>
             <div class="nearby-list" *ngIf="nearbyDiseases.length > 0; else noNearbyDiseases">
-              <div class="nearby-item" *ngFor="let nearby of nearbyDiseases">
+              <div class="nearby-item ion-activatable" 
+                   *ngFor="let nearby of nearbyDiseases"
+                   [class.critical-alert]="nearby.distanceKm <= 3"
+                   (click)="focusOnMap(nearby)"
+                   style="cursor: pointer; position: relative; overflow: hidden;">
+                <ion-ripple-effect></ion-ripple-effect>
+
                 <div class="nearby-item-head">
-                  <span class="nearby-disease">{{ nearby.disease }}</span>
-                  <span class="nearby-distance">{{ nearby.distanceKm | number:'1.1-1' }} km away</span>
+                  <span class="nearby-disease">
+                    <ion-icon name="alert-circle" color="danger" *ngIf="nearby.distanceKm <= 3"></ion-icon>
+                    {{ nearby.disease }}
+                    <span class="case-counter" *ngIf="nearby.caseCount > 1">({{ nearby.caseCount }} cases)</span>
+                  </span>
+                  
+                  <div class="distance-date-wrapper">
+                    <span class="nearby-distance">Closest: {{ nearby.distanceKm | number:'1.1-1' }}km away</span>
+                    <span class="nearby-date">
+                      <ion-icon name="calendar-outline"></ion-icon>
+                      {{ nearby.latestDate | date:'MMM d, yyyy' }}
+                    </span>
+                  </div>
                 </div>
                 <p class="nearby-tip">{{ getPreventionTip(nearby.disease) }}</p>
+                <ion-badge color="danger" mode="ios" *ngIf="nearby.distanceKm <= 3">Urgent Advisory</ion-badge>
               </div>
             </div>
             <ng-template #noNearbyDiseases>
               <p class="insight-empty">
-                Enable location access to see nearby disease alerts and prevention guidance.
+                No disease outbreaks detected within 3km this month.
               </p>
             </ng-template>
           </div>
