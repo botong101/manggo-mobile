@@ -834,7 +834,7 @@ $shadow-strong: rgba(0, 0, 0, 0.2);
   }
 }
 
-// ── Disease location results list ─────────────────────────────────────
+// ── Disease location results list (Dropdown Version) ──────────────────
 
 .disease-locations-list {
   margin: 0 0 20px 0;
@@ -862,9 +862,69 @@ $shadow-strong: rgba(0, 0, 0, 0.2);
   }
 }
 
-.disease-location-item {
-  padding: 10px 14px;
+.disease-group-container {
   border-bottom: 1px solid #f0f0f0;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.disease-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px;
+  background: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:active {
+    background: #f1f8f1; // Subtle green flash on tap
+  }
+
+  .disease-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .disease-name {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: $text-dark;
+    }
+
+    .location-count {
+      font-size: 0.72rem;
+      color: $green-primary;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+  }
+
+  ion-icon {
+    font-size: 18px;
+    color: $green-secondary;
+    transition: transform 0.3s ease;
+  }
+}
+
+.disease-dropdown-content {
+  max-height: 0;
+  overflow: hidden;
+  background: #fcfdfc; // Very slight off-white to distinguish from header
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &.show {
+    max-height: 1000px; // Large limit for lists
+    border-top: 1px solid #f5f5f5;
+  }
+}
+
+// Sub-items inside the dropdown
+.sub-item {
+  padding: 12px 14px 12px 24px; // Left indent to show hierarchy
+  border-bottom: 1px dashed #eee;
 
   &:last-child {
     border-bottom: none;
@@ -874,45 +934,30 @@ $shadow-strong: rgba(0, 0, 0, 0.2);
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 4px;
+    gap: 12px;
 
-    .disease-name {
-      font-size: 0.85rem;
-      font-weight: 600;
+    .disease-loc-addr-text {
+      font-size: 0.78rem;
       color: $text-dark;
-    }
-
-    .disease-conf {
-      font-size: 0.72rem;
-      font-weight: 600;
-      color: white;
-      background: $green-secondary;
-      padding: 2px 7px;
-      border-radius: 10px;
-      flex-shrink: 0;
-    }
-  }
-
-  .disease-loc-addr {
-    display: flex;
-    align-items: flex-start;
-    gap: 4px;
-    color: $text-light;
-    font-size: 0.75rem;
-
-    ion-icon {
-      font-size: 12px;
-      margin-top: 1px;
-      flex-shrink: 0;
-      color: $green-secondary;
-    }
-
-    span {
       line-height: 1.4;
+      flex: 1;
+    }
+
+    .disease-dist {
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #1a73e8;
+      background: rgba(26, 115, 232, 0.08);
+      padding: 3px 8px;
+      border-radius: 12px;
+      border: 1px solid rgba(26, 115, 232, 0.15);
+      flex-shrink: 0;
+      white-space: nowrap;
     }
   }
 }
 
+// Keep your existing no-location-map styles...
 .no-location-map {
   display: flex;
   flex-direction: column;
