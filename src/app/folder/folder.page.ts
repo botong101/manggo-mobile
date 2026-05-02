@@ -314,7 +314,7 @@ export class FolderPage implements OnInit {
     }
 
     if (action === 'history') {
-      this.router.navigate(['/pages/history']);
+      this.router.navigate(['/folder/History']);
       return;
     }
 
@@ -329,7 +329,7 @@ export class FolderPage implements OnInit {
   }
 
   goToHome(): void {
-    this.router.navigate(['/home']);
+    this.router.navigate(['pages/home']);
   }
 
   contactSupport(): void {
@@ -865,7 +865,7 @@ export class FolderPage implements OnInit {
           latestDate: location.uploaded_at!
         };
       })
-      // 3. Filter by the 500-meter radius requirement
+      // 3. Filter by the 3km radius requirement
       .filter((location) => location.distanceKm <= radiusKm)
       // 4. Sort by closest first so the grouping picks the nearest distance
       .sort((a, b) => a.distanceKm - b.distanceKm);

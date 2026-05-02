@@ -115,17 +115,6 @@
                   <span class="detail-label">Notes</span>
                   <p>{{ record.notes }}</p>
                 </div>
-
-                <div class="details-actions">
-                  <ion-button size="small" fill="outline" class="action-btn">
-                    <ion-icon name="download-outline" slot="start"></ion-icon>
-                    Export Result
-                  </ion-button>
-                  <ion-button size="small" fill="outline" class="action-btn">
-                    <ion-icon name="share-social-outline" slot="start"></ion-icon>
-                    Share
-                  </ion-button>
-                </div>
               </div>
 
               <div *ngIf="record.notes && selectedHistoryId !== record.id" class="history-item-notes">
@@ -237,7 +226,7 @@
                   </span>
                   
                   <div class="distance-date-wrapper">
-                    <span class="nearby-distance">Closest: {{ nearby.distanceKm | number:'1.1-1' }}km away</span>
+                    <span class="nearby-distance"> {{ nearby.distanceKm | number:'1.1-1' }}km away</span>
                     <span class="nearby-date">
                       <ion-icon name="calendar-outline"></ion-icon>
                       {{ nearby.latestDate | date:'MMM d, yyyy' }}
@@ -465,8 +454,7 @@
             <div class="help-card-head">
               <ion-icon name="rocket-outline"></ion-icon>
               <div>
-                <h3>Quick Help Actions</h3>
-                <p>Jump to the tools most users need during troubleshooting.</p>
+                <h2>Quick Help Actions</h2>
               </div>
             </div>
 
@@ -492,8 +480,7 @@
             <div class="help-card-head">
               <ion-icon name="chatbox-ellipses-outline"></ion-icon>
               <div>
-                <h3>Frequently Asked Questions</h3>
-                <p>Answers to common issues while using MangoSense.</p>
+                <h2>Frequently Asked Questions</h2>
               </div>
             </div>
 

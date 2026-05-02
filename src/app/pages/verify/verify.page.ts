@@ -68,6 +68,7 @@ export class VerifyPage implements OnInit {
   isLoadingLocations = false;
   activeDiseaseFilter: 'similar' | 'all' | null = null;
   diseaseLocations: any[] = [];
+  groupedDiseases: any[] = [];
 
   // gate validation — did the backend say its not a mango?
   gateRejected = false;
@@ -167,28 +168,28 @@ export class VerifyPage implements OnInit {
     }
 
     const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    html,body,#map{width:100%;height:100%}
-  </style>
-</head>
-<body>
-  <div id="map"></div>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script>
-    var map = L.map('map').setView([${lat},${lng}],14);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      attribution:'&copy; OpenStreetMap contributors',maxZoom:19
-    }).addTo(map);
-    ${markersJs}
-  </script>
-</body>
-</html>`;
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+        <style>
+          *{margin:0;padding:0;box-sizing:border-box}
+          html,body,#map{width:100%;height:100%}
+        </style>
+      </head>
+      <body>
+        <div id="map"></div>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+        <script>
+          var map = L.map('map').setView([${lat},${lng}],14);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+            attribution:'&copy; OpenStreetMap contributors',maxZoom:19
+          }).addTo(map);
+          ${markersJs}
+        </script>
+      </body>
+      </html>`;
 
     this.mapSrcdoc = this.sanitizer.bypassSecurityTrustHtml(html);
   }
@@ -203,7 +204,71 @@ export class VerifyPage implements OnInit {
     window.open(`https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=16/${lat}/${lng}`, '_blank');
   }
 
-  /** Show markers for detections that share the same primary disease */
+  /** Helper: Haversine Formula to calculate distance in KM */
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  /** Process and filter raw locations from the backend */
+  private processNearbyLocations(locations: any[]): any[] {
+    if (!this.detectedLocation) return [];
+
+    const userLat = this.detectedLocation.latitude;
+    const userLng = this.detectedLocation.longitude;
+    const thresholdKm = 3.0; // 3KM requirement
+
+    // 1. Filter by 3km Distance & Add distance property
+    let filtered = locations
+      .map(loc => ({
+        ...loc,
+        distance: this.calculateDistance(userLat, userLng, loc.latitude, loc.longitude)
+      }))
+      .filter(loc => loc.distance <= thresholdKm);
+
+    // 2. Filter out duplicates for the map pins (Same disease at same address)
+    const uniqueMap = new Map();
+    filtered.forEach(item => {
+      const key = `${item.disease}-${item.address}`;
+      if (!uniqueMap.has(key)) {
+        uniqueMap.set(key, item);
+      }
+    });
+    
+    const uniqueLocations = Array.from(uniqueMap.values());
+
+    // 3. NEW: Group by Disease Name for the Dropdown UI
+    const groups = uniqueLocations.reduce((acc, loc) => {
+      const name = loc.disease || 'Unknown';
+      if (!acc[name]) {
+        acc[name] = {
+          name: name,
+          locations: [],
+          isOpen: false // Controls accordion toggle
+        };
+      }
+      acc[name].locations.push(loc);
+      return acc;
+    }, {});
+
+    // 4. Update the groupedDiseases variable for your UI
+    this.groupedDiseases = Object.values(groups).map((group: any) => {
+      // Sort specific locations within the group by distance
+      group.locations.sort((a: any, b: any) => a.distance - b.distance);
+      return group;
+    });
+
+    // Return the unique list to be used for map markers (this.diseaseLocations)
+    return uniqueLocations.sort((a: any, b: any) => a.distance - b.distance);
+  }
+
   async showSimilarDisease() {
     if (!this.detectedDisease || this.detectedDisease === 'Unknown') {
       this.showToast('No disease detected to compare against.', 'warning');
@@ -213,47 +278,57 @@ export class VerifyPage implements OnInit {
     try {
       const url = `${environment.apiUrl}/disease-locations/similar/?disease=${encodeURIComponent(this.detectedDisease)}`;
       const resp: any = await this.http.get(url).toPromise();
-      this.diseaseLocations = resp?.data?.locations ?? [];
+      const rawData = resp?.data?.locations ?? [];
+      
+      // Apply the 3km and Unique filter
+      this.diseaseLocations = this.processNearbyLocations(rawData);
+      
       this.activeDiseaseFilter = 'similar';
       this.buildMapSrcdoc(this.diseaseLocations, 'similar');
+      
       if (this.diseaseLocations.length === 0) {
-        this.showToast('No similar disease locations found.', 'warning');
-      } else {
-        this.showToast(`Found ${this.diseaseLocations.length} similar disease location(s).`, 'success');
+        this.showToast('No similar diseases within 3km.', 'warning');
       }
     } catch (err) {
-      this.showToast('Failed to load disease locations.', 'danger');
+      this.showToast('Error fetching nearby data.', 'danger');
     } finally {
       this.isLoadingLocations = false;
     }
   }
 
-  /** Show all stored disease detections */
   async showAllDiseases() {
     this.isLoadingLocations = true;
     try {
       const url = `${environment.apiUrl}/disease-locations/all/`;
       const resp: any = await this.http.get(url).toPromise();
-      this.diseaseLocations = resp?.data?.locations ?? [];
+      const rawData = resp?.data?.locations ?? [];
+      
+      this.diseaseLocations = this.processNearbyLocations(rawData);
+      
       this.activeDiseaseFilter = 'all';
       this.buildMapSrcdoc(this.diseaseLocations, 'all');
+      
       if (this.diseaseLocations.length === 0) {
-        this.showToast('No disease locations recorded yet.', 'warning');
-      } else {
-        this.showToast(`Found ${this.diseaseLocations.length} detection(s).`, 'success');
+        this.showToast('No diseases found within 3km.', 'warning');
       }
     } catch (err) {
-      this.showToast('Failed to load disease locations.', 'danger');
+      this.showToast('Error loading nearby map.', 'danger');
     } finally {
       this.isLoadingLocations = false;
     }
   }
 
-  /** Clear disease location results and reset map to just current location */
+  /** Toggle function for the interactive dropdowns */
+  toggleDiseaseGroup(group: any) {
+    group.isOpen = !group.isOpen;
+  }
+
+  /** Clear disease location results and reset everything */
   clearDiseaseMarkers() {
     this.diseaseLocations = [];
+    this.groupedDiseases = []; // Clear the dropdowns too
     this.activeDiseaseFilter = null;
-    this.buildMapSrcdoc(); // rebuild with only the current-location pin
+    this.buildMapSrcdoc(); 
   }
 
   /** Format confidence for display */

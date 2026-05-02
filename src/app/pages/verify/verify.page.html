@@ -74,10 +74,7 @@
           <div class="symptoms-card">
             <!-- main symptoms for the detected disease -->
             <div class="primary-symptoms">
-              <h4>Possible Symptoms</h4>
-              
-              
-              
+              <h4>Possible Symptoms</h4>                                     
               <ul class="symptoms-list">
                 <li *ngFor="let symptom of symptoms; let i = index">
                   <ion-checkbox
@@ -105,10 +102,7 @@
               <!-- other symptoms from top 2 and 3 diseases -->
               <div class="alternative-symptoms" *ngIf="showMoreOptions">
                 <h4>Other Possible Symptoms</h4>
-                <p class="alternative-subtitle">Based on other possible diseases detected</p>
-                
-                
-                
+                <p class="alternative-subtitle">Based on other possible diseases detected</p>                                      
                 <ul class="symptoms-list alternative" *ngIf="alternativeSymptoms.length > 0">
                   <li *ngFor="let symptom of alternativeSymptoms; let i = index">
                     <ion-checkbox
@@ -219,20 +213,35 @@
 
           </div>
 
-          <!-- disease location results list (rendered outside the iframe wrapper) -->
-          <div class="disease-locations-list" *ngIf="diseaseLocations.length > 0">
+          <!-- disease location results list (Refactored to Grouped Dropdown) -->
+          <div class="disease-locations-list" *ngIf="groupedDiseases.length > 0">
             <div class="disease-list-header">
               <ion-icon [name]="activeDiseaseFilter === 'similar' ? 'git-branch-outline' : 'earth-outline'"></ion-icon>
-              <span>{{ diseaseLocations.length }} location(s) found</span>
+              <span>Detected Diseases Within 3km</span>
             </div>
-            <div class="disease-location-item" *ngFor="let loc of diseaseLocations">
-              <div class="disease-loc-main">
-                <span class="disease-name">{{ loc.disease }}</span>
+
+            <!-- Main Disease Groups -->
+            <div class="disease-group-container" *ngFor="let group of groupedDiseases">
+              
+              <!-- Interactive Header: Click this to show/hide locations -->
+              <div class="disease-group-header" (click)="toggleDiseaseGroup(group)">
+                <div class="disease-info">
+                  <span class="disease-name">{{ group.name }}</span>
+                  <span class="location-count">{{ group.locations.length }} location(s) found</span>
+                </div>
+                <ion-icon [name]="group.isOpen ? 'chevron-up-outline' : 'chevron-down-outline'"></ion-icon>
               </div>
-              <div class="disease-loc-addr">
-                <ion-icon name="location-outline"></ion-icon>
-                <span>{{ loc.address || 'Unknown location' }}</span>
+
+              <!-- Dropdown Content: Shows specific addresses and distances -->
+              <div class="disease-dropdown-content" [class.show]="group.isOpen">
+                <div class="disease-location-item sub-item" *ngFor="let loc of group.locations">
+                  <div class="disease-loc-main">
+                    <span class="disease-loc-addr-text">{{ loc.address || 'Unknown location' }}</span>
+                    <span class="disease-dist">{{ loc.distance.toFixed(2) }} km</span>
+                  </div>
+                </div>
               </div>
+
             </div>
           </div>
 
